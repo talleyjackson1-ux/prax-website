@@ -1,37 +1,69 @@
 import { useEffect, useRef } from 'react'
 
 // ── REX — the guide. ───────────────────────────────────────────────────────
-// Faithful to the PRAX RexOrb: a smooth MARBLE center mass (grey-blue stone
-// with accent-tinted veins, lit from the upper left, accent fresnel rim) with
-// fine WHITE particles in live formation orbits — evenly-tilted rings flying
-// in formation, gyroscope/atom look, never a swarm.
+// A direct port of the PRAX RexOrb (portal/src/jarvis/RexOrb.tsx):
+//  · Marble center mass — blue stone, drifting darker blotches, accent
+//    fresnel rim, key light upper-left.
+//  · OrbitField — 620 fine WHITE particles in 10 formation rings that HUG the
+//    orb (r = 1.2 + (k%3)*0.04, surface = 1.0). Ring plane normals are spread
+//    on a Fibonacci sphere; every particle on a ring shares one angular speed
+//    (ω = 0.3·1.2/r) and is evenly spaced — gyroscope/atom look, never a swarm.
 //
-// Movement is deliberate: each section declares data-rex="left|right" and REX
-// flies to a parking spot beside that section's heading (measured from the
-// real DOM), rides with it while it's on screen, and on arrival emits a pulse
-// while the section lights up (accent underline sweep + card edge glow via a
-// .rex-lit class).
+// Movement is deliberate and stays OUT of the text: each section declares
+// data-rex="left|right" and REX parks beside that section's heading. When the
+// next anchor is on the opposite side he never crosses the copy — he exits
+// off one edge of the screen and glides back in from the other.
 
 const ACCENT: [number, number, number] = [59, 115, 247]
 const HI: [number, number, number] = [143, 176, 255]
+const N = 620
 
-type Ring = { inc: number; om: number; r: number; n: number; s: number; phase: number }
-const RINGS: Ring[] = [
-  { inc: 0.42, om: 0.0, r: 1.45, n: 78, s: 0.45, phase: 0.0 },
-  { inc: 1.05, om: 1.9, r: 1.72, n: 88, s: -0.32, phase: 1.3 },
-  { inc: 0.75, om: 4.1, r: 1.28, n: 62, s: 0.6, phase: 2.6 },
-  { inc: 1.35, om: 2.7, r: 1.95, n: 94, s: 0.26, phase: 4.0 },
-  { inc: 0.2, om: 5.3, r: 1.58, n: 68, s: -0.5, phase: 5.1 },
-]
+// ── exact OrbitField setup (ported from the portal) ──
+type Field = { u: Float32Array; v: Float32Array; rad: Float32Array; spd: Float32Array; phase: Float32Array }
+function buildOrbitField(num: number): Field {
+  const u = new Float32Array(num * 3), v = new Float32Array(num * 3)
+  const rad = new Float32Array(num), spd = new Float32Array(num), phase = new Float32Array(num)
+  const RINGS = Math.min(10, Math.max(4, Math.round(num / 62)))
+  const perRing = Math.floor(num / RINGS)
+  let i = 0
+  for (let k = 0; k < RINGS; k++) {
+    // evenly-spread ring orientations (Fibonacci sphere of plane normals)
+    const yk = 1 - ((k + 0.5) / RINGS) * 2
+    const rk = Math.sqrt(Math.max(1 - yk * yk, 0))
+    const az = k * 2.399963229
+    let nx = Math.cos(az) * rk, ny = yk, nz = Math.sin(az) * rk
+    const nl = Math.hypot(nx, ny, nz); nx /= nl; ny /= nl; nz /= nl
+    let rx = 0, ry = 1, rz = 0
+    if (Math.abs(ny) > 0.92) { rx = 1; ry = 0; rz = 0 }
+    // uu = n × ref, vv = n × uu
+    let ux = ny * rz - nz * ry, uy = nz * rx - nx * rz, uz = nx * ry - ny * rx
+    const ul = Math.hypot(ux, uy, uz); ux /= ul; uy /= ul; uz /= ul
+    let vx = ny * uz - nz * uy, vy = nz * ux - nx * uz, vz = nx * uy - ny * ux
+    const vl = Math.hypot(vx, vy, vz); vx /= vl; vy /= vl; vz /= vl
+    const r = 1.2 + (k % 3) * 0.04            // hug the orb (surface ≈ 1.0)
+    const omega = 0.3 * (1.2 / r)             // shared per ring → formation
+    const count = (k === RINGS - 1) ? (num - i) : perRing
+    for (let j = 0; j < count; j++, i++) {
+      rad[i] = r; spd[i] = omega; phase[i] = (j / count) * Math.PI * 2
+      u[i * 3] = ux; u[i * 3 + 1] = uy; u[i * 3 + 2] = uz
+      v[i * 3] = vx; v[i * 3 + 1] = vy; v[i * 3 + 2] = vz
+    }
+  }
+  return { u, v, rad, spd, phase }
+}
 
-// per-vein wave params for the marble surface (stable across frames)
-const VEINS = Array.from({ length: 6 }, (_, k) => ({
-  y: -0.72 + k * 0.28 + (k % 2) * 0.07,
-  amp: 0.1 + (k * 37 % 10) * 0.02,
-  freq: 2.2 + (k * 53 % 10) * 0.22,
-  ph: k * 1.7,
-  wdt: 0.9 + (k * 29 % 10) * 0.14,
-}))
+// surface blotches — darker stone patches that rotate with the planet
+const BLOTCHES = Array.from({ length: 16 }, (_, k) => {
+  const r1 = Math.sin(k * 127.1) * 43758.5453, r2 = Math.sin(k * 311.7) * 12543.21
+  const a = (r1 - Math.floor(r1)) * Math.PI * 2
+  const y = ((r2 - Math.floor(r2)) - 0.5) * 1.7
+  const rr = Math.sqrt(Math.max(1 - y * y * 0.8, 0.05))
+  return {
+    x: Math.cos(a) * rr, y: y * 0.9, z: Math.sin(a) * rr,
+    size: 0.22 + ((k * 73) % 10) * 0.03,
+    dark: 0.10 + ((k * 41) % 10) * 0.014,
+  }
+})
 
 type Anchor = { section: HTMLElement; el: HTMLElement; side: string }
 
@@ -68,9 +100,10 @@ export default function RexOrb() {
     const settle = window.setTimeout(collect, 600)
     window.addEventListener('load', collect)
 
-    // where REX should park right now (viewport coords)
-    function target(): { x: number; y: number; i: number } {
-      if (anchors.length === 0) return { x: w * 0.75, y: h * 0.55, i: 0 }
+    const orbR = () => Math.max(30, Math.min(48, Math.min(w, h) * 0.044))
+
+    function anchorPoint(): { x: number; y: number; i: number; side: string } {
+      if (anchors.length === 0) return { x: w * 0.75, y: h * 0.55, i: 0, side: 'right' }
       let best = 0, bestD = Infinity
       for (let i = 0; i < anchors.length; i++) {
         const r = anchors[i].section.getBoundingClientRect()
@@ -79,19 +112,21 @@ export default function RexOrb() {
       }
       const a = anchors[best]
       const r = a.el.getBoundingClientRect()
-      const margin = orbR() * 2.4
+      const margin = orbR() * 1.7
       const x = a.side === 'left'
         ? Math.max(r.left - 120, margin)
         : Math.min(r.right + 120, w - margin)
-      const y = Math.min(Math.max(r.top + r.height / 2, margin), h - margin)
-      return { x, y, i: best }
+      // keep REX below the fixed nav and above the fold edge
+      const y = Math.min(Math.max(r.top + r.height / 2, Math.max(margin, 150)), h - margin)
+      return { x, y, i: best, side: a.side }
     }
 
-    const orbR = () => Math.max(28, Math.min(46, Math.min(w, h) * 0.042))
+    const field = buildOrbitField(N)
 
-    const first = target()
+    const first = anchorPoint()
     let px = first.x, py = first.y, vx = 0, vy = 0
     let traveling = false
+    let wrapping: null | { dir: 1 | -1 } = null // dir = edge REX exits through (-1 left, +1 right)
     let pulse = 0
     let lit = -1
     const trail: { x: number; y: number }[] = []
@@ -108,23 +143,44 @@ export default function RexOrb() {
       ctx!.clearRect(0, 0, w, h)
 
       const R = orbR()
-      const tgt = target()
+      const tgt = anchorPoint()
       const bobX = Math.sin(t * 0.8) * 5
       const bobY = Math.cos(t * 1.25) * 7
+
+      // ── wrap-around routing: never cross the copy ──
+      const curSide = px < w / 2 ? 'left' : 'right'
+      const offEdge = R * 2.6
+      if (!wrapping && tgt.side !== curSide && Math.abs(tgt.x - px) > w * 0.3) {
+        wrapping = { dir: curSide === 'left' ? -1 : 1 } // exit through the near edge
+      }
+
+      let seekX = tgt.x + bobX, seekY = tgt.y + bobY
+      if (wrapping) {
+        seekX = wrapping.dir === -1 ? -offEdge : w + offEdge
+        seekY = py + (tgt.y - py) * 0.4 // drift toward arrival altitude on the way out
+        if ((wrapping.dir === -1 && px < -offEdge + 4) || (wrapping.dir === 1 && px > w + offEdge - 4)) {
+          // fully offscreen → re-enter from the OTHER edge at arrival altitude
+          px = wrapping.dir === -1 ? w + offEdge : -offEdge
+          py = tgt.y
+          vx = 0; vy = 0
+          trail.length = 0
+          wrapping = null
+        }
+      }
 
       if (reduced) {
         px = tgt.x; py = tgt.y
         setLit(tgt.i)
       } else {
-        vx += (tgt.x + bobX - px) * 0.011
-        vy += (tgt.y + bobY - py) * 0.011
+        vx += (seekX - px) * 0.011
+        vy += (seekY - py) * 0.011
         vx *= 0.9; vy *= 0.9
         px += vx; py += vy
       }
 
       const dist = Math.hypot(tgt.x - px, tgt.y - py)
       if (dist > 160) traveling = true
-      if (traveling && dist < 34) {
+      if (traveling && !wrapping && dist < 34) {
         traveling = false
         pulse = 1
         setLit(tgt.i)
@@ -153,94 +209,87 @@ export default function RexOrb() {
 
       // ── soft accent halo ──
       const breathe = 1 + Math.sin(t * 2.0) * 0.045 * (1 - moving)
-      const halo = ctx!.createRadialGradient(px, py, 0, px, py, R * 2.5 * breathe)
-      halo.addColorStop(0, 'rgba(59,115,247,0.16)')
+      const halo = ctx!.createRadialGradient(px, py, 0, px, py, R * 2.3 * breathe)
+      halo.addColorStop(0, 'rgba(59,115,247,0.17)')
       halo.addColorStop(0.55, 'rgba(59,115,247,0.05)')
       halo.addColorStop(1, 'rgba(59,115,247,0)')
       ctx!.fillStyle = halo
-      ctx!.beginPath(); ctx!.arc(px, py, R * 2.5 * breathe, 0, Math.PI * 2); ctx!.fill()
+      ctx!.beginPath(); ctx!.arc(px, py, R * 2.3 * breathe, 0, Math.PI * 2); ctx!.fill()
 
       // ── arrival pulse ring ──
       if (pulse > 0) {
-        const pr = R * (1.3 + (1 - pulse) * 2.2)
+        const pr = R * (1.35 + (1 - pulse) * 2.2)
         ctx!.strokeStyle = `rgba(${HI[0]},${HI[1]},${HI[2]},${pulse * 0.55})`
         ctx!.lineWidth = 1.5
         ctx!.beginPath(); ctx!.arc(px, py, pr, 0, Math.PI * 2); ctx!.stroke()
         pulse -= 0.022
       }
 
-      // ── orbit particles: compute all, draw the BEHIND half first ──
-      const spin = 1 + moving * 2.2
-      const prec = t * 0.06 // slow precession of the whole formation
+      // ── OrbitField: advance formation, split behind/front ──
+      const dtSpin = 0.016 * (1 + moving * 1.6)
       type P3 = { sx: number; sy: number; z: number }
       const behind: P3[] = [], front: P3[] = []
-      for (const ring of RINGS) {
-        const cosI = Math.cos(ring.inc), sinI = Math.sin(ring.inc)
-        const om = ring.om + prec
-        const cosO = Math.cos(om), sinO = Math.sin(om)
-        const rr = ring.r * R
-        for (let m = 0; m < ring.n; m++) {
-          const th = ring.phase + ring.s * t * spin + (m / ring.n) * Math.PI * 2
-          const ct = Math.cos(th), st = Math.sin(th)
-          const x = rr * (cosO * ct - sinO * st * cosI)
-          const z = rr * (sinO * ct + cosO * st * cosI)
-          const y = rr * st * sinI
-          const p: P3 = { sx: px + x, sy: py + y * 0.92, z }
-          ;(z < 0 ? behind : front).push(p)
-        }
+      for (let i = 0; i < N; i++) {
+        field.phase[i] += field.spd[i] * dtSpin
+        const c = Math.cos(field.phase[i]), s = Math.sin(field.phase[i])
+        const ix = i * 3, r = field.rad[i] * R
+        const x = (field.u[ix] * c + field.v[ix] * s) * r
+        const y = (field.u[ix + 1] * c + field.v[ix + 1] * s) * r
+        const z = (field.u[ix + 2] * c + field.v[ix + 2] * s) * r
+        const p: P3 = { sx: px + x, sy: py + y, z }
+        ;(z < 0 ? behind : front).push(p)
       }
       const drawPts = (list: P3[]) => {
         for (const p of list) {
-          const depth = (p.z / (2 * R) + 1) / 2 // 0 back → 1 front
-          ctx!.fillStyle = `rgba(255,255,255,${0.14 + depth * 0.5})`
-          const s = 0.9 + depth * 0.7
+          const depth = (p.z / (1.3 * R) + 1) / 2 // 0 back → 1 front
+          ctx!.fillStyle = `rgba(255,255,255,${0.12 + depth * 0.5})`
+          const s = 0.8 + depth * 0.9
           ctx!.fillRect(p.sx - s / 2, p.sy - s / 2, s, s)
         }
       }
+      ctx!.globalCompositeOperation = 'lighter'
       drawPts(behind)
 
-      // ── the marble ──
+      // ── the marble: blue stone planet ──
       ctx!.globalCompositeOperation = 'source-over'
-      // stone shading, key light upper-left (matches the shader's lambert dir)
-      const sph = ctx!.createRadialGradient(px - R * 0.38, py - R * 0.42, R * 0.08, px, py, R)
-      sph.addColorStop(0, '#a7aec2')
-      sph.addColorStop(0.42, '#59617a')
-      sph.addColorStop(0.8, '#2b3145')
-      sph.addColorStop(1, '#1a1f30')
+      const sph = ctx!.createRadialGradient(px - R * 0.36, py - R * 0.4, R * 0.08, px, py, R)
+      sph.addColorStop(0, '#aebcdd')
+      sph.addColorStop(0.4, '#5b6d9e')
+      sph.addColorStop(0.78, '#2e3a61')
+      sph.addColorStop(1, '#1b2340')
       ctx!.fillStyle = sph
       ctx!.beginPath(); ctx!.arc(px, py, R, 0, Math.PI * 2); ctx!.fill()
 
-      // accent-tinted veins drifting across the stone
+      // rotating surface blotches (the fbm stone texture, in spirit)
       ctx!.save()
-      ctx!.beginPath(); ctx!.arc(px, py, R, 0, Math.PI * 2); ctx!.clip()
-      ctx!.globalCompositeOperation = 'lighter'
-      for (const vn of VEINS) {
-        ctx!.strokeStyle = `rgba(${HI[0]},${HI[1]},${HI[2]},0.14)`
-        ctx!.lineWidth = vn.wdt
-        ctx!.beginPath()
-        const drift = t * 0.12
-        for (let sx = -1; sx <= 1.001; sx += 0.08) {
-          const yy = vn.y + Math.sin(sx * vn.freq + vn.ph + drift) * vn.amp
-                   + Math.sin(sx * vn.freq * 2.3 - drift * 0.7) * vn.amp * 0.35
-          const X = px + sx * R
-          const Y = py + yy * R
-          if (sx === -1) ctx!.moveTo(X, Y); else ctx!.lineTo(X, Y)
-        }
-        ctx!.stroke()
+      ctx!.beginPath(); ctx!.arc(px, py, R * 0.985, 0, Math.PI * 2); ctx!.clip()
+      const rot = t * 0.09
+      const cR = Math.cos(rot), sR = Math.sin(rot)
+      for (const b of BLOTCHES) {
+        const bx = b.x * cR + b.z * sR
+        const bz = -b.x * sR + b.z * cR
+        if (bz < 0.05) continue // back side of the planet
+        const gx = px + bx * R * 0.82, gy = py + b.y * R * 0.82
+        const gr = b.size * R * (0.7 + bz * 0.5)
+        const g = ctx!.createRadialGradient(gx, gy, 0, gx, gy, gr)
+        g.addColorStop(0, `rgba(13,18,38,${b.dark * bz})`)
+        g.addColorStop(1, 'rgba(13,18,38,0)')
+        ctx!.fillStyle = g
+        ctx!.beginPath(); ctx!.arc(gx, gy, gr, 0, Math.PI * 2); ctx!.fill()
       }
       ctx!.restore()
 
-      // fresnel rim — accent edge light
+      // fresnel rim — bright accent edge light
       ctx!.globalCompositeOperation = 'lighter'
-      const rim = ctx!.createRadialGradient(px, py, R * 0.62, px, py, R * 1.04)
+      const rim = ctx!.createRadialGradient(px, py, R * 0.6, px, py, R * 1.05)
       rim.addColorStop(0, 'rgba(59,115,247,0)')
-      rim.addColorStop(0.82, 'rgba(59,115,247,0.10)')
-      rim.addColorStop(0.97, `rgba(${HI[0]},${HI[1]},${HI[2]},0.5)`)
+      rim.addColorStop(0.8, 'rgba(59,115,247,0.12)')
+      rim.addColorStop(0.96, `rgba(${HI[0]},${HI[1]},${HI[2]},0.6)`)
       rim.addColorStop(1, 'rgba(143,176,255,0)')
       ctx!.fillStyle = rim
-      ctx!.beginPath(); ctx!.arc(px, py, R * 1.04, 0, Math.PI * 2); ctx!.fill()
+      ctx!.beginPath(); ctx!.arc(px, py, R * 1.05, 0, Math.PI * 2); ctx!.fill()
 
-      // ── front orbit particles over the marble ──
+      // ── front half of the OrbitField over the marble ──
       drawPts(front)
 
       raf = requestAnimationFrame(frame)

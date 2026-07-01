@@ -13,8 +13,9 @@ const ITER = 12          // Gauss-Seidel pressure iterations
 const CELL = 16          // px per fluid cell
 const SPACING = 13       // px between tracer points
 const VORT = 4.2         // vorticity confinement strength
-const FORCE = 42         // cursor force multiplier
+const FORCE = 26         // cursor force multiplier (gentle — water, not explosion)
 const SAMPLE_SCALE = 9   // field velocity → px/frame for tracers
+const DECAY = 0.9985     // per-frame dissipation — ripples linger and travel
 
 export default function WaterField() {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -151,8 +152,8 @@ export default function WaterField() {
         project()
         advect()
         project()
-        // gentle global dissipation — water calms back down
-        for (let n = 0; n < u.length; n++) { u[n] *= 0.994; v[n] *= 0.994 }
+        // gentle global dissipation — water calms back down, slowly
+        for (let n = 0; n < u.length; n++) { u[n] *= DECAY; v[n] *= DECAY }
       }
 
       ctx!.clearRect(0, 0, w, h)
@@ -161,16 +162,16 @@ export default function WaterField() {
       for (const pt of pts) {
         const fu = sample(pt.x, pt.y, u) * SAMPLE_SCALE
         const fv = sample(pt.x, pt.y, v) * SAMPLE_SCALE
-        pt.vx = pt.vx * 0.82 + fu * 0.5 + (pt.hx - pt.x) * 0.018
-        pt.vy = pt.vy * 0.82 + fv * 0.5 + (pt.hy - pt.y) * 0.018
+        pt.vx = pt.vx * 0.86 + fu * 0.42 + (pt.hx - pt.x) * 0.012
+        pt.vy = pt.vy * 0.86 + fv * 0.42 + (pt.hy - pt.y) * 0.012
         pt.x += pt.vx; pt.y += pt.vy
 
-        // brightness = speed (slow dim, fast bright), faint floor so the
-        // lattice reads even when the water is still
+        // brightness = SPEED, with real dynamic range: still water is a
+        // whisper, slow drift stays dim, only genuinely fast water burns
         const spd = Math.hypot(pt.vx, pt.vy)
-        const a = Math.min(0.9, 0.055 + spd * spd * 0.055)
+        const a = Math.min(0.95, 0.04 + Math.pow(spd * 0.5, 2.6) * 0.32)
         ctx!.globalAlpha = a
-        const s = spd > 3 ? 1.9 : 1.4
+        const s = 1.2 + Math.min(1.1, spd * spd * 0.05)
         ctx!.fillRect(pt.x - s / 2, pt.y - s / 2, s, s)
       }
       ctx!.globalAlpha = 1
