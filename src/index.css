@@ -106,6 +106,14 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.
   overflow: hidden;
 }
 .hero-field { position: absolute; inset: 0; }
+/* the film — a slightly opaque black layer between the water and the letters,
+   dimming + blurring the activity behind the type */
+.hero-film {
+  position: absolute; inset: 0; pointer-events: none;
+  background: rgba(5, 7, 13, 0.38);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
 .hero-fade {
   position: absolute; inset: 0; pointer-events: none;
   background:
@@ -152,6 +160,24 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.
 /* alternate: leave a lane for REX on the opposite side */
 .section .lane-right { margin-right: auto; }
 .section .lane-left { margin-left: auto; text-align: left; }
+
+/* ── REX section highlight — lit by REX arriving ── */
+.section .sec-head h2, .cta h2 { position: relative; padding-bottom: 6px; }
+.section .sec-head h2::after, .cta h2::after {
+  content: ''; position: absolute; left: 0; bottom: -8px; height: 2px; width: 100%;
+  background: linear-gradient(90deg, var(--accent), rgba(59, 115, 247, 0));
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cta h2::after {
+  left: 25%; width: 50%; transform-origin: center;
+  background: linear-gradient(90deg, rgba(59,115,247,0), var(--accent), rgba(59,115,247,0));
+}
+.rex-lit .sec-head h2::after, .cta.rex-lit h2::after { transform: scaleX(1); }
+.pain, .cell, .orbit-card, .feat, .stage, .flow-step { transition: border-color 0.6s ease, transform 0.3s ease; }
+.rex-lit .pain, .rex-lit .cell, .rex-lit .orbit-card, .rex-lit .flow-step { border-color: rgba(120, 155, 255, 0.26); }
+.rex-lit .feat, .rex-lit .stage { border-top-color: rgba(120, 155, 255, 0.3); }
+.rex-lit .rex-line { text-shadow: 0 0 22px rgba(59, 115, 247, 0.55); }
 
 /* REX speech line */
 .rex-line {
@@ -203,6 +229,16 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.
 .score-num b { font-family: var(--font-display); font-size: 3rem; font-weight: 700; color: #fff; }
 .score-num span { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.2em; color: var(--dim); text-transform: uppercase; }
 .score-caption { text-align: center; color: var(--faint); font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.12em; }
+
+/* guided context-engineering loop */
+.flow-strip { display: flex; align-items: stretch; gap: 10px; margin-top: 18px; }
+.flow-step {
+  flex: 1; padding: 22px 20px; border-radius: 16px;
+  background: rgba(10, 14, 26, 0.6); border: 1px solid var(--line);
+}
+.flow-step h3 { font-size: 0.98rem; margin: 10px 0 6px; }
+.flow-step p { color: var(--dim); font-size: 0.84rem; }
+.flow-arrow { align-self: center; color: var(--accent-hi); font-family: var(--font-mono); opacity: 0.7; }
 
 /* feature list rows (ADHD section) */
 .feat-rows { margin-top: 48px; display: flex; flex-direction: column; }
@@ -276,6 +312,8 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.
   .cell-score, .cell-wide, .cell-half, .cell-third { grid-column: auto; }
   .feat { grid-template-columns: 1fr; gap: 6px; }
   .roadmap { flex-direction: column; gap: 8px; }
+  .flow-strip { flex-direction: column; }
+  .flow-arrow { transform: rotate(90deg); }
   .section .lane-left, .section .lane-right { margin: 0; }
   .rex-canvas { opacity: 0.4; }
 }

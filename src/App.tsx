@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
-import FlowField from './fx/FlowField'
+import WaterField from './fx/WaterField'
 import RexOrb from './fx/RexOrb'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -102,13 +102,14 @@ export default function App() {
       </nav>
 
       {/* ── HERO ── */}
-      <header className="hero" id="top" data-rex="0.74" data-rex-y="0.6">
-        <div className="hero-field"><FlowField /></div>
+      <header className="hero" id="top" data-rex="right">
+        <div className="hero-field"><WaterField /></div>
+        <div className="hero-film" />
         <div className="hero-fade" />
         <div className="hero-inner wrap">
           <div className="mono">PRAX // creative output system</div>
           <h1>From scattered<br /><span className="accent">to shipped.</span></h1>
-          <p className="hero-sub">
+          <p className="hero-sub" data-rex-el>
             PRAX is a creative output platform that walks you through <b>context engineering</b> on
             a workflow built for how <b>ADHD brains</b> actually work — guided by REX, the orb on
             your right. Scroll. He'll show you around.
@@ -123,7 +124,7 @@ export default function App() {
 
       <main>
         {/* ── 01 THE GAP ── */}
-        <section className="section" id="why" data-rex="0.84">
+        <section className="section" id="why" data-rex="right">
           <div className="wrap">
             <div className="sec-head lane-right" data-reveal>
               <div className="mono">01 // the gap</div>
@@ -159,15 +160,15 @@ export default function App() {
         </section>
 
         {/* ── 02 CONTEXT ENGINEERING ── */}
-        <section className="section" id="workflow" data-rex="0.1">
+        <section className="section" id="workflow" data-rex="left">
           <div className="wrap">
             <div className="sec-head lane-left" data-reveal>
               <div className="mono">02 // context engineering</div>
               <h2>Don't start working.<br />Start knowing.</h2>
               <p>
-                Before you execute, PRAX scores how ready your context is — what's known, what's
-                guessed, what's missing. The gaps become your next moves. Deepen, re-score, then
-                build with confidence.
+                PRAX is designed around <b>context engineering</b> — and the workflow guides you
+                through it. Before you execute, it scores how ready your context is: what's known,
+                what's guessed, what's missing. The gaps become your next moves.
               </p>
             </div>
             <div className="bento" data-reveal-group>
@@ -212,6 +213,31 @@ export default function App() {
                 <p>The workflow surfaces a single next action. Everything else waits its turn.</p>
               </div>
             </div>
+            <div className="flow-strip" data-reveal-group>
+              <div className="flow-step">
+                <div className="mono">step 01</div>
+                <h3>Talk it out</h3>
+                <p>Start from a conversation, not a form. Say what you're trying to make.</p>
+              </div>
+              <div className="flow-arrow">→</div>
+              <div className="flow-step">
+                <div className="mono">step 02</div>
+                <h3>Score the context</h3>
+                <p>PRAX measures what it would still have to guess.</p>
+              </div>
+              <div className="flow-arrow">→</div>
+              <div className="flow-step">
+                <div className="mono">step 03</div>
+                <h3>Close the gaps</h3>
+                <p>Each gap is a concrete question. Answer, and the score climbs.</p>
+              </div>
+              <div className="flow-arrow">→</div>
+              <div className="flow-step">
+                <div className="mono">step 04</div>
+                <h3>Execute</h3>
+                <p>Build with the full picture — and re-score any time it shifts.</p>
+              </div>
+            </div>
             <p className="rex-line" data-reveal>
               <span className="rex-tag">REX</span>
               "I score what I'd have to guess. Close the gaps — then we build."
@@ -220,7 +246,7 @@ export default function App() {
         </section>
 
         {/* ── 03 ADHD FOUNDATION ── */}
-        <section className="section" id="foundation" data-rex="0.86">
+        <section className="section" id="foundation" data-rex="right">
           <div className="wrap">
             <div className="sec-head lane-right" data-reveal>
               <div className="mono">03 // the foundation</div>
@@ -261,7 +287,7 @@ export default function App() {
         </section>
 
         {/* ── 04 COMMUNITY ── */}
-        <section className="section" id="community" data-rex="0.12">
+        <section className="section" id="community" data-rex="left">
           <div className="wrap">
             <div className="sec-head lane-left" data-reveal>
               <div className="mono">04 // community</div>
@@ -296,7 +322,7 @@ export default function App() {
         </section>
 
         {/* ── 05 PROMOTION ── */}
-        <section className="section" id="promotion" data-rex="0.86">
+        <section className="section" id="promotion" data-rex="right">
           <div className="wrap">
             <div className="sec-head lane-right" data-reveal>
               <div className="mono">05 // promotion</div>
@@ -332,7 +358,7 @@ export default function App() {
         </section>
 
         {/* ── 06 BUSINESS ── */}
-        <section className="section" id="business" data-rex="0.12">
+        <section className="section" id="business" data-rex="left">
           <div className="wrap">
             <div className="sec-head lane-left" data-reveal>
               <div className="mono">06 // business</div>
@@ -368,7 +394,7 @@ export default function App() {
         </section>
 
         {/* ── CTA ── */}
-        <section className="cta" id="join" data-rex="0.78" data-rex-y="0.24">
+        <section className="cta" id="join" data-rex="right">
           <div className="cta-glow" />
           <div className="wrap">
             <div className="mono" data-reveal>built in the open</div>
