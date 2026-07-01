@@ -302,6 +302,10 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.
   position: fixed; inset: 0; width: 100vw; height: 100vh;
   pointer-events: none; z-index: 6;
 }
+.rex-webgl {
+  position: fixed; top: 0; left: 0;
+  pointer-events: none; z-index: 7; will-change: transform;
+}
 
 /* ── responsive ── */
 
@@ -315,5 +319,5 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.
   .flow-strip { flex-direction: column; }
   .flow-arrow { transform: rotate(90deg); }
   .section .lane-left, .section .lane-right { margin: 0; }
-  .rex-canvas { opacity: 0.4; }
+  .rex-canvas, .rex-webgl { opacity: 0.4; }
 }
