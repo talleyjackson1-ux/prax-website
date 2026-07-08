@@ -87,6 +87,7 @@ export default function App() {
 
   return (
     <>
+      <div className="site-field" aria-hidden="true"><WaterField /></div>
       <RexOrb />
 
       <nav className="nav glass">
@@ -103,7 +104,6 @@ export default function App() {
 
       {/* ── HERO ── */}
       <header className="hero" id="top" data-rex="right">
-        <div className="hero-field"><WaterField /></div>
         <div className="hero-film" />
         <div className="hero-fade" />
         <div className="hero-inner wrap">

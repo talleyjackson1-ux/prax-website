@@ -98,14 +98,19 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.
 .nav-links a:hover { color: var(--text); }
 .nav .btn { padding: 9px 20px; font-size: 0.85rem; }
 
+/* ── site background — the water lattice runs behind the whole page ── */
+
+.site-field { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+main { position: relative; z-index: 1; }
+footer { position: relative; z-index: 1; }
+
 /* ── hero ── */
 
 .hero {
-  position: relative; min-height: 100svh;
+  position: relative; z-index: 1; min-height: 100svh;
   display: flex; flex-direction: column; justify-content: center;
   overflow: hidden;
 }
-.hero-field { position: absolute; inset: 0; }
 /* the film — a slightly opaque black layer between the water and the letters,
    dimming + blurring the activity behind the type */
 .hero-film {
@@ -118,7 +123,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.
   position: absolute; inset: 0; pointer-events: none;
   background:
     radial-gradient(ellipse 90% 60% at 50% 42%, transparent 30%, rgba(5, 7, 13, 0.55) 100%),
-    linear-gradient(180deg, rgba(5,7,13,0.55) 0%, transparent 22%, transparent 70%, var(--bg) 100%);
+    linear-gradient(180deg, rgba(5,7,13,0.55) 0%, transparent 22%);
 }
 .hero-inner { position: relative; z-index: 2; text-align: center; }
 .hero h1 {
