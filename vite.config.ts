@@ -10,6 +10,9 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         'concept-gym': fileURLToPath(new URL('./concepts/gym/index.html', import.meta.url)),
+        'concept-hvac': fileURLToPath(new URL('./concepts/hvac/index.html', import.meta.url)),
+        'concept-roofing': fileURLToPath(new URL('./concepts/roofing/index.html', import.meta.url)),
+        'concept-plumbing': fileURLToPath(new URL('./concepts/plumbing/index.html', import.meta.url)),
       },
     },
   },
