@@ -13,6 +13,7 @@ export default defineConfig({
         'concept-hvac': fileURLToPath(new URL('./concepts/hvac/index.html', import.meta.url)),
         'concept-roofing': fileURLToPath(new URL('./concepts/roofing/index.html', import.meta.url)),
         'concept-plumbing': fileURLToPath(new URL('./concepts/plumbing/index.html', import.meta.url)),
+        start: fileURLToPath(new URL('./start/index.html', import.meta.url)),
       },
     },
   },
