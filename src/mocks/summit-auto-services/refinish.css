@@ -51,18 +51,21 @@ body::after {
 .rf-scrollcue span { animation: rf-bob 1.6s ease-in-out infinite; font-size: 1rem; }
 @keyframes rf-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
 
-.rf-mistband { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; will-change: transform; }
-.rf-mistband img {
-  position: absolute; width: 46vh; height: 46vh; object-fit: contain; will-change: transform, opacity;
+/* the black paint cloud — full height, ~1/3 of the screen, centered on the seam */
+.rf-mistband {
+  position: absolute; top: 0; left: 0; width: 34vw; height: 100vh; z-index: 3;
+  pointer-events: none; opacity: 0; will-change: transform;
 }
-.rf-mistband img:nth-child(1) { top: 4vh; left: 30vw; }
-.rf-mistband img:nth-child(2) { top: 32vh; left: 26vw; transform: scale(1.3); }
-.rf-mistband img:nth-child(3) { top: 60vh; left: 31vw; transform: scale(1.1); }
+.rf-mist-col { position: absolute; inset: -4vh -6%; width: 112%; height: 108vh; object-fit: fill; }
+.rf-mist-puff { position: absolute; width: 30vw; height: 30vw; object-fit: contain; will-change: transform, opacity; }
+.rf-mp1 { top: 6vh; left: -4vw; }
+.rf-mp2 { bottom: 4vh; left: 8vw; }
 
+/* wide strip: gun at the left end, air hose running off the right edge */
 .rf-gun {
-  position: absolute; z-index: 5; top: 12vh; left: 0; width: clamp(300px, 42vw, 720px);
-  will-change: transform; pointer-events: none;
-  filter: drop-shadow(0 24px 50px rgba(0, 0, 0, 0.5));
+  position: absolute; z-index: 5; top: 16vh; left: 0; width: 120vw; max-width: none;
+  will-change: transform, opacity; pointer-events: none;
+  filter: drop-shadow(0 26px 48px rgba(0, 0, 0, 0.55));
   transform: translate3d(114vw, 0, 0);
 }
 
@@ -73,28 +76,28 @@ body::after {
   transform: translateX(100vw); will-change: transform;
 }
 .rf-hero-card {
-  width: min(480px, 88vw); background: rgba(246, 244, 239, 0.94);
-  border: 1px solid var(--rf-line); border-radius: 14px;
-  padding: clamp(22px, 3vw, 38px); backdrop-filter: blur(6px);
-  box-shadow: 0 30px 90px -20px rgba(0, 0, 0, 0.55);
+  width: min(600px, 92vw); background: rgba(248, 246, 241, 0.97);
+  border: 1px solid var(--rf-line); border-radius: 16px;
+  padding: clamp(28px, 3.6vw, 48px); backdrop-filter: blur(8px);
+  box-shadow: 0 40px 110px -18px rgba(0, 0, 0, 0.65);
 }
-.rf-logo { font-family: 'Archivo Black', sans-serif; font-size: 1.5rem; letter-spacing: 0.04em; }
+.rf-logo { font-family: 'Archivo Black', sans-serif; font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing: 0.04em; }
 .rf-logo span { color: var(--rf-navy); }
-.rf-hero-card .rf-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.12em; color: var(--rf-dim); margin: 6px 0 18px; text-transform: uppercase; }
-.rf-hero-card p.rf-lede { font-size: 1.06rem; line-height: 1.5; margin-bottom: 22px; font-weight: 500; }
-.rf-cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+.rf-hero-card .rf-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.12em; color: var(--rf-dim); margin: 8px 0 20px; text-transform: uppercase; }
+.rf-hero-card p.rf-lede { font-size: clamp(1.1rem, 1.6vw, 1.25rem); line-height: 1.5; margin-bottom: 26px; font-weight: 600; }
+.rf-cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 26px; }
 .rf-btn {
-  display: inline-block; padding: 12px 22px; border-radius: 6px; cursor: pointer;
+  display: inline-block; padding: 15px 28px; border-radius: 7px; cursor: pointer;
   border: 1px solid var(--rf-line); color: var(--rf-ink); text-decoration: none;
-  font-weight: 700; font-size: 0.92rem; background: #fff; font-family: 'Inter', sans-serif;
+  font-weight: 800; font-size: 1rem; background: #fff; font-family: 'Inter', sans-serif;
   transition: border-color 0.2s, background 0.2s;
 }
 .rf-btn:hover { border-color: var(--rf-navy); }
 .rf-btn-solid { background: var(--rf-navy); border-color: var(--rf-navy); color: #fff; }
 .rf-btn-solid:hover { background: var(--rf-navy-hi); border-color: var(--rf-navy-hi); }
-.rf-stats { display: flex; gap: 26px; }
-.rf-stats b { display: block; font-family: 'Archivo Black', sans-serif; font-size: 1.5rem; }
-.rf-stats span { color: var(--rf-dim); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.rf-stats { display: flex; gap: 30px; }
+.rf-stats b { display: block; font-family: 'Archivo Black', sans-serif; font-size: 2rem; }
+.rf-stats span { color: var(--rf-dim); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 
 /* ── ACT 2 — the masking-tape peel ─────────────────────────────────────────── */
 .rf-peel { position: relative; height: 100vh; overflow: hidden; background: #0a0c10; }
@@ -112,11 +115,18 @@ body::after {
 }
 .rf-cover-inner h2 { font-size: clamp(2.2rem, 6vw, 5rem); max-width: 16ch; color: var(--rf-ink); }
 .rf-cover-inner .rf-mono { display: block; margin-bottom: 18px; font-size: 0.68rem; color: var(--rf-red); }
-.rf-tape {
-  position: absolute; z-index: 4; left: -2vw; width: 104vw; height: 58px; object-fit: fill;
-  transform: rotate(-0.6deg); will-change: top, opacity;
-  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
-  top: calc(100% - 58px);
+/* the fold — back of the tape riding the diagonal peel edge (bottom-right corner) */
+.rf-fold {
+  position: absolute; z-index: 4; height: 64px; width: 0; opacity: 0;
+  transform: translate(-50%, -50%) rotate(-45deg); transform-origin: center;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.32), rgba(0,0,0,0.12) 55%, rgba(0,0,0,0.28)),
+    url('/img/auto/tape.png');
+  background-size: auto 100%, auto 100%;
+  border-radius: 3px;
+  box-shadow: -14px 14px 34px rgba(0, 0, 0, 0.4), -4px 4px 10px rgba(0, 0, 0, 0.3);
+  will-change: left, top, width, opacity; pointer-events: none;
+  transition: opacity 0.2s;
 }
 
 /* ── shop sections ─────────────────────────────────────────────────────────── */
@@ -186,7 +196,7 @@ body::after {
 
 /* reduced motion / static fallback: 50/50 split poster, no pins */
 .rf-static .rf-after { clip-path: inset(0 0 0 50%) !important; }
-.rf-static .rf-gun, .rf-static .rf-mistband, .rf-static .rf-tape { display: none; }
+.rf-static .rf-gun, .rf-static .rf-mistband, .rf-static .rf-fold { display: none; }
 .rf-static .rf-hero { transform: none; }
 .rf-static .rf-cover { clip-path: inset(0 0 100% 0) !important; }
 

@@ -86,3 +86,18 @@ Material-stage motif carries the whole page: **damaged → sanded → painted �
 P0 assets (dad questions out first — his photos gate the hero) → P1 static sections on the light
 theme → P2 spray wipe with photos + clip-path only → P3 gun sequence + mist on top → P4 tape peel →
 P5 mobile/reduced-motion/perf → P6 Playwright scroll-stop QA + pixel review.
+
+## v2 round (2026-07-09 eve — Jackson's feedback, all landed)
+- REAL pair replaces composited damage: crumpled→fixed fender (Shutterstock 1948581235 crop =
+  **PLACEHOLDER — buy the ~$15 license or shoot dad's own pair before this goes to anyone**)
+- BLACK mist: full-height column ~1/3 screen wide riding the seam — transition line never visible
+  (this also means pairs don't need pixel alignment)
+- Gun v4: gravity cup on top, dark polished chrome matched to scene light, air hose off-frame right
+- Tape peel v2: diagonal corner peel from BOTTOM-RIGHT, ragged jittered edge, tape-back fold strip
+- Hero card enlarged/bolded
+
+## PARKED PRODUCT IDEA — dynamic booking calendar (dad, 2026-07-09)
+Booksy-style but OWN software: dad publishes availability windows; clients pick a slot that works
+against his real schedule (no back-and-forth); optional no-show fee + small reschedule fee (needs
+card-on-file → Stripe). Build trigger per the crew-app rule: pilot on dad's site first as the
+booking widget v2, generalize if clients ask. Pairs with the growth stack (missed-call textback).

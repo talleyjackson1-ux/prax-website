@@ -41,7 +41,7 @@ export default function Refinish() {
   const heroRef = useRef<HTMLDivElement>(null)
   const peelRef = useRef<HTMLDivElement>(null)
   const coverRef = useRef<HTMLDivElement>(null)
-  const tapeRef = useRef<HTMLImageElement>(null)
+  const tapeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -56,41 +56,61 @@ export default function Refinish() {
 
     const gun = gunRef.current!, after = afterRef.current!, mist = mistRef.current!
 
-    // ACT 0+1 — the spray pass (one progress value drives gun, seam, mist: nothing desyncs)
+    // ACT 0+1 — the spray pass. Gun art is a wide strip (gun left + hose running
+    // off-right); nozzle sits ~7% into it. The BLACK mist band (~1/3 screen, full
+    // height) rides the seam so the transition line is never visible.
     const seam = { p: 0 }
+    const GUN_W = 120                                        // vw — hose spans the screen
     const act1 = gsap.timeline({
-      scrollTrigger: { trigger: stageRef.current, start: 'top top', end: '+=3200', scrub: 0.35, pin: true },
+      scrollTrigger: { trigger: stageRef.current, start: 'top top', end: '+=3400', scrub: 0.35, pin: true },
     })
     act1.to('.rf-sentence', { autoAlpha: 0, filter: 'blur(8px)', duration: 0.1 }, 0.02)
     act1.to(seam, {
-      p: 1, duration: 0.8, ease: 'none',
+      p: 1, duration: 0.9, ease: 'none',
       onUpdate: () => {
         const p = seam.p
-        const gunX = 114 - p * 178                          // vw: off-right → off-left
-        gun.style.transform = `translate3d(${gunX}vw, ${Math.sin(p * 9) * 1.8}vh, 0) rotate(-3deg)`
-        const clip = Math.max(0, Math.min(100, gunX + 9))   // seam glued just right of the nozzle
-        after.style.clipPath = `inset(0 0 0 ${clip}%)`
-        mist.style.transform = `translate3d(${gunX - 32}vw, 0, 0)`
+        const gunX = 112 - p * 210                           // nozzle crosses 0 at p≈0.57
+        gun.style.transform = `translate3d(${gunX}vw, ${Math.sin(p * 8) * 1.6}vh, 0)`
+        const nozzle = gunX + GUN_W * 0.07
+        after.style.clipPath = `inset(0 0 0 ${Math.max(0, Math.min(100, nozzle))}%)`
+        mist.style.transform = `translate3d(${nozzle - 17}vw, 0, 0)`   // band centered on the seam
       },
     }, 0.05)
-    act1.to(mist, { autoAlpha: 1, duration: 0.06 }, 0.09)
-    act1.to(mist, { autoAlpha: 0, duration: 0.1 }, 0.76)
-    act1.fromTo(heroRef.current, { x: '100vw' }, { x: 0, ease: 'power2.out', duration: 0.34 }, 0.5)
+    act1.to(mist, { autoAlpha: 1, duration: 0.05 }, 0.08)
+    act1.to(mist, { autoAlpha: 0, duration: 0.12 }, 0.62)   // cloud settles once the seam is done
+    act1.to(gun, { autoAlpha: 0, duration: 0.08 }, 0.78)    // painter steps away
+    act1.fromTo(heroRef.current, { x: '100vw' }, { x: 0, ease: 'power2.out', duration: 0.3 }, 0.62)
 
     // mist breathes on its own clock (not scrubbed) — paint hangs in the air
-    gsap.to('.rf-mistband img', { scale: '+=0.18', opacity: 0.75, duration: 1.5, yoyo: true, repeat: -1, stagger: 0.35, ease: 'sine.inOut' })
+    gsap.to('.rf-mist-puff', { scale: '+=0.16', opacity: 0.85, duration: 1.4, yoyo: true, repeat: -1, stagger: 0.4, ease: 'sine.inOut' })
 
-    // ACT 2 — masking-tape peel, bottom-up
+    // ACT 2 — the tape peel: page lifts from the BOTTOM-RIGHT CORNER like a strip
+    // of masking tape, diagonal edge slightly uneven, fold strip riding the line.
     const peel = { p: 0 }
+    const JIT = [1.6, -2.2, 1.9, -1.2]                       // fixed unevenness along the edge
+    const fold = tapeRef.current!
     gsap.timeline({
-      scrollTrigger: { trigger: peelRef.current, start: 'top top', end: '+=1500', scrub: 0.35, pin: true },
+      scrollTrigger: { trigger: peelRef.current, start: 'top top', end: '+=1700', scrub: 0.35, pin: true },
     }).to(peel, {
       p: 1, ease: 'none',
       onUpdate: () => {
-        const pct = peel.p * 100
-        coverRef.current!.style.clipPath = `inset(0 0 ${pct}% 0)`
-        tapeRef.current!.style.top = `calc(${100 - pct}% - 52px)`
-        tapeRef.current!.style.opacity = peel.p > 0.985 ? '0' : '1'
+        const p = peel.p
+        const d = 10 + 165 * p                               // how far the corner has peeled
+        const A = { x: 112, y: 100 - d }                     // on/beyond the right edge
+        const B = { x: 100 - d, y: 112 }                     // on/beyond the bottom edge
+        const mids = JIT.map((j, i) => {
+          const t = (i + 1) / (JIT.length + 1)
+          const wob = j * Math.min(1, p * 2.5)
+          return `${(A.x + (B.x - A.x) * t + wob).toFixed(2)}% ${(A.y + (B.y - A.y) * t + wob).toFixed(2)}%`
+        }).join(', ')
+        coverRef.current!.style.clipPath =
+          `polygon(-10% -10%, 110% -10%, ${A.x}% ${A.y}%, ${mids}, ${B.x}% ${B.y}%, -10% 110%)`
+        // the fold — tape's back riding the diagonal, shrinking shadow gap behind it
+        const m = 106 - d / 2
+        fold.style.left = `${m}vw`
+        fold.style.top = `${m}vh`
+        fold.style.width = `${Math.min(170, (d + 4) * 1.42)}vw`
+        fold.style.opacity = p < 0.02 || p > 0.96 ? '0' : '1'
       },
     })
 
@@ -113,19 +133,22 @@ export default function Refinish() {
     <div className="rf">
       {/* ── ACT 0+1: damage → spray pass ── */}
       <div className="rf-stage" ref={stageRef}>
+        {/* REAL pair — same panel, same angle (placeholder crop of the licensed
+            reference until the Shutterstock license / dad's own pair lands) */}
         <div className="rf-layer">
-          <img className="rf-photo" src="/img/auto/refinish-before.jpg" alt="Black hood with scuffs and scratches — before" />
+          <img className="rf-photo" src="/img/auto/pair-before.jpg" alt="Crumpled front fender — before" />
         </div>
         <div className="rf-layer rf-after" ref={afterRef}>
-          <img className="rf-photo" src="/img/auto/refinish-after.jpg" alt="The same hood repaired and polished — after" />
+          <img className="rf-photo" src="/img/auto/pair-after.jpg" alt="The same fender repaired — after" />
         </div>
 
+        {/* BLACK paint cloud — full height, ~1/3 of the screen, hides the seam */}
         <div className="rf-mistband" ref={mistRef}>
-          <img src="/img/auto/mist-1.png" alt="" aria-hidden="true" />
-          <img src="/img/auto/mist-2.png" alt="" aria-hidden="true" />
-          <img src="/img/auto/mist-3.png" alt="" aria-hidden="true" />
+          <img className="rf-mist-col" src="/img/auto/mist-column.png" alt="" aria-hidden="true" />
+          <img className="rf-mist-puff rf-mp1" src="/img/auto/mist-1.png" alt="" aria-hidden="true" />
+          <img className="rf-mist-puff rf-mp2" src="/img/auto/mist-2.png" alt="" aria-hidden="true" />
         </div>
-        <img className="rf-gun" ref={gunRef} src="/img/auto/gun.png" alt="HVLP paint spray gun" />
+        <img className="rf-gun" ref={gunRef} src="/img/auto/gun.png" alt="HVLP paint spray gun with air hose" />
 
         <div className="rf-sentence">
           <h1>minor to medium body damage? contact me.</h1>
@@ -170,7 +193,8 @@ export default function Refinish() {
             </div>
           </div>
         </div>
-        <img className="rf-tape" ref={tapeRef} src="/img/auto/tape.png" alt="" aria-hidden="true" />
+        {/* the fold — the tape's back riding the diagonal peel edge */}
+        <div className="rf-fold" ref={tapeRef} aria-hidden="true" />
       </div>
 
       {/* ── the shop ── */}
