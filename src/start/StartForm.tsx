@@ -160,6 +160,7 @@ export default function StartForm() {
         best_job: data.bestJob, years: data.years, license: data.license, reviews: data.reviews,
         logo: data.logo, photos: data.photos, goal: data.goal, style: data.style,
         extras: data.extras, reference: data.reference, notes: data.notes,
+        must_have: data.mustHave, must_not: data.mustNot,
       }
       await fetch(`${SUPA_URL}/rest/v1/freelance_leads`, {
         method: 'POST',
@@ -202,7 +203,7 @@ export default function StartForm() {
     )
   }
 
-  const steps = ['The basics', 'Your business', 'Proof', 'Goals & taste']
+  const steps = ['The basics', 'Your business', 'Proof', 'Goals & taste', 'Say anything']
 
   return (
     <div className="sf-card">
@@ -296,13 +297,33 @@ export default function StartForm() {
           <Chips field="extras" options={EXTRAS} data={data} setData={setData} />
           <div className="sf-grid">
             <label>A site you like (or hate)<input value={data.reference ?? ''} onChange={set('reference')} placeholder="competitor.com — hate it" /></label>
-            <label className="sf-full">Anything else worth knowing? <small>(the more context, the better the mock)</small>
-              <textarea rows={3} value={data.notes ?? ''} onChange={set('notes')}
-                placeholder="Slow season is winter · the owner's truck should be on the site · we sponsor the local little league…" />
-            </label>
           </div>
           <div className="sf-row">
             <button className="sf-btn" onClick={() => setStep(2)}>Back</button>
+            <button className="sf-btn sf-btn-solid" onClick={() => setStep(4)}>Next</button>
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="sf-step">
+          <h2>SAY ANYTHING <em>— your words go straight into the build</em></h2>
+          <div className="sf-grid">
+            <label className="sf-full">Ideas, styles, concepts — anything on your mind
+              <textarea rows={3} value={data.notes ?? ''} onChange={set('notes')}
+                placeholder="Slow season is winter · the owner's truck should be on the site · love the look of chrome and dark metal…" />
+            </label>
+            <label className="sf-full">MUST be on the website <small>(non-negotiables — these are guaranteed in)</small>
+              <textarea rows={2} value={data.mustHave ?? ''} onChange={set('mustHave')}
+                placeholder="Our phone number huge at the top · the 26 years · a photo of the crew" />
+            </label>
+            <label className="sf-full">Must NOT be on the website <small>(hard nos — these are guaranteed out)</small>
+              <textarea rows={2} value={data.mustNot ?? ''} onChange={set('mustNot')}
+                placeholder="No stock photos of fake smiling models · no prices listed · nothing about the old location" />
+            </label>
+          </div>
+          <div className="sf-row">
+            <button className="sf-btn" onClick={() => setStep(3)}>Back</button>
             <button className="sf-btn sf-btn-solid" disabled={!step1Valid || sending} onClick={submit}>
               {sending ? 'Sending…' : 'Send it — free mock within 48 hours'}
             </button>
