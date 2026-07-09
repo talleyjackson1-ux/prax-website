@@ -27,9 +27,11 @@ export interface TradeConfig {
   reviewBanner: string
   areas: string[]
   quoteHeading: string
+  quoteKicker?: string                              // section label; defaults to FREE QUOTE
   quoteServices: string[]
   closing: { heading: string; sub: string; cta: string }
-  theme: Record<string, string>                     // CSS custom props
+  theme: Record<string, string>                     // CSS custom props ('--t-bar' = docked bar bg, optional)
+  footer?: { left: string; right: string }          // client mocks override the concept credit line
 }
 
 export const hvacConfig: TradeConfig = {

@@ -95,7 +95,8 @@ export default function TradeConcept({ cfg }: { cfg: TradeConfig }) {
         t.to(p.h, { x: p.dx, y: p.dy, duration: 0.3, ease: 'power2.inOut' }, `dock+=${i * 0.015}`)
       })
       t.to(barRef.current!, {
-        backgroundColor: 'rgba(8,10,13,0.9)',
+        // theme-driven so light mocks get a light docked bar ('--t-bar', dark default)
+        backgroundColor: cfg.theme['--t-bar'] ?? 'rgba(8,10,13,0.9)',
         borderBottomColor: 'var(--t-line)',
         duration: 0.12,
       }, 'dock+=0.15')
@@ -242,7 +243,7 @@ export default function TradeConcept({ cfg }: { cfg: TradeConfig }) {
 
       {/* quote form — the lead capture the LeadForge audits kept flagging */}
       <section className="tc-sec" id="quote" data-reveal-sec>
-        <div className="tc-kicker">05 — FREE QUOTE</div>
+        <div className="tc-kicker">05 — {cfg.quoteKicker ?? 'FREE QUOTE'}</div>
         <h2>{cfg.quoteHeading}</h2>
         <form className="tc-quote" onSubmit={(e) => e.preventDefault()}>
           <input placeholder="Name" required />
@@ -273,8 +274,8 @@ export default function TradeConcept({ cfg }: { cfg: TradeConfig }) {
         <p>{cfg.closing.sub}</p>
         <a className="tc-btn tc-btn-solid tc-btn-big" href={tel}>{cfg.closing.cta}</a>
         <footer>
-          <span>{cfg.brand.first} {cfg.brand.second} — website concept</span>
-          <span>designed &amp; built by Jackson Talley · prax.design</span>
+          <span>{cfg.footer?.left ?? `${cfg.brand.first} ${cfg.brand.second} — website concept`}</span>
+          <span>{cfg.footer?.right ?? 'designed & built by Jackson Talley · prax.design'}</span>
         </footer>
       </section>
     </div>

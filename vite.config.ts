@@ -14,6 +14,8 @@ export default defineConfig({
         'concept-roofing': fileURLToPath(new URL('./concepts/roofing/index.html', import.meta.url)),
         'concept-plumbing': fileURLToPath(new URL('./concepts/plumbing/index.html', import.meta.url)),
         start: fileURLToPath(new URL('./start/index.html', import.meta.url)),
+        // client mocks — free previews built from /start intakes (noindex)
+        'mock-summit-auto': fileURLToPath(new URL('./mock/summit-auto-services/index.html', import.meta.url)),
       },
     },
   },

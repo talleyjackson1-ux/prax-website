@@ -14,3 +14,9 @@ All photos from Unsplash (unsplash.com), standard Unsplash License
 ## plumbing/
 - hero.jpg, cabinet.jpg, heater.jpg — Timur Shakerzianov
 - tools.jpg — Tekton
+
+## auto/ (Summit Auto mock)
+- hero.jpg — Jimmy Nilsson Masth
+- engine.jpg — Chad Kirchoff
+- bodywork.jpg — Mehmet Talha Onuk
+- finished.jpg — Laurel and Michael Evans
