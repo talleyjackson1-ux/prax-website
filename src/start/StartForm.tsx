@@ -126,7 +126,7 @@ export default function StartForm() {
           <b>{data.email || data.phone}</b> within 48 hours. No strings — if you hate it, delete it.
         </p>
         <div className="sf-upsell">
-          <b>In a hurry?</b> Approve the mock and the LAUNCH package is <b>$450</b> — one-page site,
+          <b>In a hurry?</b> Approve the mock and the LAUNCH package is <b>$250</b> — one-page site,
           click-to-call, quote form, SEO basics, live in 7 days.
         </div>
       </div>

@@ -21,7 +21,7 @@ function StartPage() {
       </main>
       <footer className="sf-foot">
         <span>full effort on every project — that's the guarantee</span>
-        <span>launch $450 · growth sites $1,200+ · care plans from $99/mo</span>
+        <span>launch $250 · growth sites $800 · care $99/mo</span>
       </footer>
     </div>
   )

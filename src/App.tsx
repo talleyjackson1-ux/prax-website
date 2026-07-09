@@ -1,14 +1,11 @@
 /* prax.design — Jackson Talley's freelance site.
-   Form-first: the hero's job is one big focused door to /start/.
-   Then: each concept site gets its own section row, pricing, the PRAX story
-   section (TalkFit joins after its rework), guarantee. REX orb stays as the
-   scroll guide — it IS the brand. */
+   Deliberately minimal: the form, the examples, the pricing. Nothing else.
+   (PRAX/REX live on their own site — this one is purely for clients.) */
 import { useEffect } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
 import WaterField from './fx/WaterField'
-import RexOrb from './fx/RexOrb'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -53,19 +50,19 @@ const WORK = [
 
 const TIERS = [
   {
-    name: 'LAUNCH', price: '$450',
+    name: 'LAUNCH', price: '$250',
     line: 'One-page site, live in 7 days.',
     items: ['Mobile-first, loads in under 2s', 'Click-to-call + 4-field quote form', 'Reviews & trust badges', 'On-page SEO basics (meta, schema)'],
   },
   {
-    name: 'GROWTH SITE', price: '$1,200+', hot: true,
+    name: 'GROWTH SITE', price: '$800', hot: true,
     line: 'The local-SEO machine.',
     items: ['5–7 pages — one per service', 'Google Business Profile optimization', 'Financing / emergency blocks', 'Full schema + speed pass, 2 revisions'],
   },
   {
-    name: 'CARE + SEO', price: 'from $99/mo',
+    name: 'CARE', price: '$99/mo',
     line: 'It keeps working after launch.',
-    items: ['Hosting, edits, updates', 'Monthly report with real numbers', '$249/mo adds GBP posts + reviews engine', 'Cancel anytime — no contracts'],
+    items: ['Hosting, edits, updates', 'Monthly report with real numbers', 'Cancel anytime — no contracts'],
   },
 ]
 
@@ -113,27 +110,24 @@ export default function App() {
   return (
     <>
       <div className="site-field" aria-hidden="true"><WaterField /></div>
-      <RexOrb />
 
       <nav className="nav glass">
         <a className="nav-logo" href="#top"><LogoMark /><b>prax.design</b></a>
         <div className="nav-links">
           <a href="#work">The Work</a>
           <a href="#pricing">Pricing</a>
-          <a href="#prax">PRAX</a>
-          <a href="#about">The Guarantee</a>
         </div>
         <a className="btn btn-primary" href="/start/">Get your free mock</a>
       </nav>
 
       {/* ── HERO — the form is the front door ── */}
-      <header className="hero" id="top" data-rex="right">
+      <header className="hero" id="top">
         <div className="hero-film" />
         <div className="hero-fade" />
         <div className="hero-inner wrap">
           <div className="mono">JACKSON TALLEY // websites that get local businesses more customers</div>
           <h1>Your customers are<br /><span className="accent">already searching.</span></h1>
-          <p className="hero-sub" data-rex-el>
+          <p className="hero-sub">
             I build fast, conversion-first websites for trades and local businesses — HVAC, plumbing,
             roofing, gyms — at indie prices. Tell me about your business in <b>3 minutes</b> and I'll
             send you a <b>free mock of your homepage</b> in 48 hours.
@@ -155,7 +149,7 @@ export default function App() {
 
       <main>
         {/* ── 01 THE WORK — each concept gets its own row ── */}
-        <section className="section" id="work" data-rex="left">
+        <section className="section" id="work">
           <div className="wrap">
             <div className="sec-head lane-left" data-reveal>
               <div className="mono">01 // the work</div>
@@ -183,7 +177,7 @@ export default function App() {
         </section>
 
         {/* ── 02 PRICING ── */}
-        <section className="section" id="pricing" data-rex="right">
+        <section className="section" id="pricing">
           <div className="wrap">
             <div className="sec-head lane-right" data-reveal>
               <div className="mono">02 // pricing</div>
@@ -203,67 +197,11 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <p className="rex-line" data-reveal>
-              <span className="rex-tag">REX</span>
-              "The mock is free because the work sells itself. Start the form — I'll handle the rest."
-            </p>
-          </div>
-        </section>
-
-        {/* ── 03 PRAX ── */}
-        <section className="section" id="prax" data-rex="left">
-          <div className="wrap">
-            <div className="sec-head lane-left" data-reveal>
-              <div className="mono">03 // the system behind the speed</div>
-              <h2>Built on PRAX.</h2>
-              <p>
-                PRAX is my own creative output system — context engineering, an AI conductor named REX
-                (the orb that's been following you), and a pipeline that goes from blank page to shipped
-                site in days, not weeks. It's why a one-person studio can move like an agency.
-              </p>
-            </div>
-            <div className="pain-row" data-reveal-group>
-              <div className="pain">
-                <div className="glyph">{'ctx > 90%'}</div>
-                <h3>Context first</h3>
-                <p>Your 3-minute form + your Google listing become a full build context before I touch a pixel. Nothing generic.</p>
-              </div>
-              <div className="pain">
-                <div className="glyph">{'>_ ship'}</div>
-                <h3>Days, not weeks</h3>
-                <p>The four sites above were designed, built, and made tourable in days. Your LAUNCH site goes live in seven.</p>
-              </div>
-              <div className="pain">
-                <div className="glyph">{'◉ REX'}</div>
-                <h3>Nothing forgotten</h3>
-                <p>Every detail you give me lives in the system — your license number, your best reviews, the job that makes you money.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── 04 GUARANTEE ── */}
-        <section className="section" id="about" data-rex="right">
-          <div className="wrap">
-            <div className="sec-head lane-right" data-reveal>
-              <div className="mono">04 // the guarantee</div>
-              <h2>Full effort. Every project.<br />That's the deal.</h2>
-              <p>
-                I'm Jackson — a Kansas City developer running a real LLC, not a template mill.
-                Small enough that your project is <b>the</b> project. You get me, my full attention,
-                and a site I'd put my own name under — because I do, in the footer.
-              </p>
-            </div>
-            <div className="about-facts" data-reveal-group>
-              <div className="fact glass"><b>KC</b><span>local — I answer, same timezone, no ticket queue</span></div>
-              <div className="fact glass"><b>7 days</b><span>LAUNCH sites go live in a week or it's free</span></div>
-              <div className="fact glass"><b>$0</b><span>the mock is free and yours to keep either way</span></div>
-            </div>
           </div>
         </section>
 
         {/* ── CLOSING CTA ── */}
-        <section className="section" id="join" data-rex="center">
+        <section className="section" id="join">
           <div className="wrap closing" data-reveal>
             <div className="mono">READY WHEN YOU ARE</div>
             <h2>Three minutes. Free mock.<br />Your call after that.</h2>
@@ -274,8 +212,7 @@ export default function App() {
 
       <footer className="footer">
         <div className="wrap foot-inner">
-          <span className="mono">JACKSON TALLEY · JCT DEVELOPMENTS LLC · KANSAS CITY</span>
-          <span className="mono">prax.design — built on PRAX, guided by REX</span>
+          <span className="mono">JACKSON TALLEY · JCT DEVELOPMENTS LLC · KANSAS CITY · PRAX.DESIGN</span>
         </div>
       </footer>
     </>
