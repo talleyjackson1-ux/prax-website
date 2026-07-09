@@ -4,7 +4,11 @@
    Wire submissions: create a form at formspree.io and paste the ID below. */
 import { useEffect, useMemo, useState } from 'react'
 
-const FORM_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID' // ← paste real ID to go live
+/* Submissions land in the PRAX Supabase (freelance_leads). The publishable key
+   is public by design; RLS allows INSERT only — nobody can read leads back. */
+const SUPA_URL = 'https://goaquyufqhuedrrvrzom.supabase.co'
+const SUPA_KEY = 'sb_publishable_1TMdi3h3h4nJDETq950fkg_uMObwlI_'
+const FORM_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID' // optional email copy — paste ID to enable
 const DRAFT_KEY = 'prax_start_draft'
 
 const TRADES = ['HVAC', 'Plumbing', 'Roofing', 'Electrical', 'Landscaping', 'Gym / Fitness', 'Auto', 'Cleaning', 'Other']
@@ -83,6 +87,21 @@ export default function StartForm() {
   const submit = async () => {
     setSending(true)
     try {
+      const row = {
+        business: data.business, trade: data.trade, phone: data.phone, email: data.email,
+        city: data.city, website: data.website, services: data.services, different: data.different,
+        best_job: data.bestJob, years: data.years, license: data.license, reviews: data.reviews,
+        logo: data.logo, photos: data.photos, goal: data.goal, style: data.style,
+        extras: data.extras, reference: data.reference,
+      }
+      await fetch(`${SUPA_URL}/rest/v1/freelance_leads`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`,
+          'Content-Type': 'application/json', Prefer: 'return=minimal',
+        },
+        body: JSON.stringify(row),
+      })
       if (!FORM_ENDPOINT.includes('YOUR_FORM_ID')) {
         await fetch(FORM_ENDPOINT, {
           method: 'POST',

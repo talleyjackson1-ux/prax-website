@@ -1,3 +1,8 @@
+/* prax.design — Jackson Talley's freelance site.
+   Form-first: the hero's job is one big focused door to /start/.
+   Then: each concept site gets its own section row, pricing, the PRAX story
+   section (TalkFit joins after its rework), guarantee. REX orb stays as the
+   scroll guide — it IS the brand. */
 import { useEffect } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -6,8 +11,6 @@ import WaterField from './fx/WaterField'
 import RexOrb from './fx/RexOrb'
 
 gsap.registerPlugin(ScrollTrigger)
-
-const RING_C = 2 * Math.PI * 90 // score ring circumference
 
 function LogoMark({ size = 22 }: { size?: number }) {
   return (
@@ -25,6 +28,47 @@ function LogoMark({ size = 22 }: { size?: number }) {
   )
 }
 
+const WORK = [
+  {
+    id: 'gym', name: 'IRONWORKS', trade: 'Gym / fitness', href: '/concepts/gym/', shot: '/shots/gym.jpg',
+    line: 'A 3D dumbbell you scroll through — engraved headline, real shadows, then the whole page slides out of its way.',
+    tags: ['Three.js hero', 'scroll choreography', 'Blender-built model'],
+  },
+  {
+    id: 'hvac', name: 'SUMMIT AIR', trade: 'HVAC', href: '/concepts/hvac/', shot: '/shots/hvac.jpg',
+    line: 'Built for a stressed homeowner with a dead AC: click-to-call everywhere, same-day promise, financing up front.',
+    tags: ['emergency-first', '0% financing block', 'quote form + day picker'],
+  },
+  {
+    id: 'roofing', name: 'TRUE NORTH ROOFING', trade: 'Roofing', href: '/concepts/roofing/', shot: '/shots/roofing.jpg',
+    line: 'Free-inspection funnel with storm-claim support — trust badges, photo-documented jobs, insurance language.',
+    tags: ['free inspection CTA', 'insurance claims', 'real photography'],
+  },
+  {
+    id: 'plumbing', name: 'RIVER CITY PLUMBING', trade: 'Plumbing', href: '/concepts/plumbing/', shot: '/shots/plumbing.jpg',
+    line: 'Urgency done right: 24/7 above the fold, license number under the logo, a human answers at 2am.',
+    tags: ['24/7 emergency', 'license-forward trust', '60-min arrival'],
+  },
+]
+
+const TIERS = [
+  {
+    name: 'LAUNCH', price: '$450',
+    line: 'One-page site, live in 7 days.',
+    items: ['Mobile-first, loads in under 2s', 'Click-to-call + 4-field quote form', 'Reviews & trust badges', 'On-page SEO basics (meta, schema)'],
+  },
+  {
+    name: 'GROWTH SITE', price: '$1,200+', hot: true,
+    line: 'The local-SEO machine.',
+    items: ['5–7 pages — one per service', 'Google Business Profile optimization', 'Financing / emergency blocks', 'Full schema + speed pass, 2 revisions'],
+  },
+  {
+    name: 'CARE + SEO', price: 'from $99/mo',
+    line: 'It keeps working after launch.',
+    items: ['Hosting, edits, updates', 'Monthly report with real numbers', '$249/mo adds GBP posts + reviews engine', 'Cancel anytime — no contracts'],
+  },
+]
+
 export default function App() {
   useEffect(() => {
     const lenis = new Lenis({ duration: 1.15 })
@@ -33,7 +77,6 @@ export default function App() {
     gsap.ticker.add(tick)
     gsap.ticker.lagSmoothing(0)
 
-    // smooth-scroll anchor links through Lenis
     const onClick = (e: MouseEvent) => {
       const a = (e.target as HTMLElement).closest('a[href^="#"]')
       if (!a) return
@@ -42,12 +85,10 @@ export default function App() {
     }
     document.addEventListener('click', onClick)
 
-    // hero entrance
     gsap.fromTo('.hero-inner > *',
       { y: 34, autoAlpha: 0 },
       { y: 0, autoAlpha: 1, duration: 1.1, stagger: 0.12, ease: 'power3.out', delay: 0.15 })
 
-    // scroll reveals
     document.querySelectorAll<HTMLElement>('[data-reveal]').forEach(el => {
       gsap.fromTo(el, { y: 30, autoAlpha: 0 }, {
         y: 0, autoAlpha: 1, duration: 1, ease: 'power3.out',
@@ -60,22 +101,6 @@ export default function App() {
         scrollTrigger: { trigger: group, start: 'top 82%' },
       })
     })
-
-    // context-score ring: scrubbed by scroll through the workflow section
-    const ring = document.querySelector<SVGCircleElement>('.score-arc')
-    const num = document.querySelector('.score-num b')
-    if (ring && num) {
-      const state = { v: 18 }
-      const apply = () => {
-        ring.style.strokeDashoffset = String(RING_C * (1 - state.v / 100))
-        num.textContent = String(Math.round(state.v))
-      }
-      apply()
-      gsap.to(state, {
-        v: 94, ease: 'none', onUpdate: apply,
-        scrollTrigger: { trigger: '#workflow', start: 'top 75%', end: 'bottom 55%', scrub: 0.6 },
-      })
-    }
 
     return () => {
       document.removeEventListener('click', onClick)
@@ -91,365 +116,168 @@ export default function App() {
       <RexOrb />
 
       <nav className="nav glass">
-        <a className="nav-logo" href="#top"><LogoMark /><b>PRAX</b></a>
+        <a className="nav-logo" href="#top"><LogoMark /><b>prax.design</b></a>
         <div className="nav-links">
-          <a href="#why">The Gap</a>
-          <a href="#workflow">Workflow</a>
-          <a href="#foundation">Foundation</a>
-          <a href="#community">Community</a>
-          <a href="#business">Business</a>
+          <a href="#work">The Work</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#prax">PRAX</a>
+          <a href="#about">The Guarantee</a>
         </div>
-        <a className="btn btn-primary" href="#join">Follow the build</a>
+        <a className="btn btn-primary" href="/start/">Get your free mock</a>
       </nav>
 
-      {/* ── HERO ── */}
+      {/* ── HERO — the form is the front door ── */}
       <header className="hero" id="top" data-rex="right">
         <div className="hero-film" />
         <div className="hero-fade" />
         <div className="hero-inner wrap">
-          <div className="mono">PRAX // creative output system</div>
-          <h1>From scattered<br /><span className="accent">to shipped.</span></h1>
+          <div className="mono">JACKSON TALLEY // websites that get local businesses more customers</div>
+          <h1>Your customers are<br /><span className="accent">already searching.</span></h1>
           <p className="hero-sub" data-rex-el>
-            PRAX is a creative output platform that walks you through <b>context engineering</b> on
-            a workflow built for how <b>ADHD brains</b> actually work — guided by REX, the orb on
-            your right. Scroll. He'll show you around.
+            I build fast, conversion-first websites for trades and local businesses — HVAC, plumbing,
+            roofing, gyms — at indie prices. Tell me about your business in <b>3 minutes</b> and I'll
+            send you a <b>free mock of your homepage</b> in 48 hours.
           </p>
+          <a className="cta-panel glass" href="/start/">
+            <div>
+              <div className="mono">THE 3-MINUTE FORM</div>
+              <b>Get your free homepage mock →</b>
+              <span>Only the first step is required. No calls, no pressure — you see the work, then decide.</span>
+            </div>
+            <div className="cta-badge">$0</div>
+          </a>
           <div className="hero-ctas">
-            <a className="btn btn-primary" href="#join">Follow the build <span className="soon">Patreon soon</span></a>
-            <a className="btn btn-ghost" href="#join">Instagram <span className="soon">soon</span></a>
+            <a className="btn btn-ghost" href="#work">Or tour the work first ↓</a>
           </div>
         </div>
         <div className="hero-scroll">scroll</div>
       </header>
 
       <main>
-        {/* ── 01 THE GAP ── */}
-        <section className="section" id="why" data-rex="right">
+        {/* ── 01 THE WORK — each concept gets its own row ── */}
+        <section className="section" id="work" data-rex="left">
+          <div className="wrap">
+            <div className="sec-head lane-left" data-reveal>
+              <div className="mono">01 // the work</div>
+              <h2>Tourable, not screenshots.</h2>
+              <p>
+                Every site below is <b>live — click in and scroll it</b>. Each one is built for how that
+                trade's customers actually buy: phone in hand, in a hurry, looking for a reason to trust you.
+              </p>
+            </div>
+            <div className="work-list">
+              {WORK.map((w, i) => (
+                <a className={`work-row glass ${i % 2 ? 'flip' : ''}`} href={w.href} key={w.id} data-reveal>
+                  <div className="work-shot"><img src={w.shot} alt={`${w.name} website concept`} loading="lazy" /></div>
+                  <div className="work-copy">
+                    <div className="mono">{w.trade}</div>
+                    <h3>{w.name}</h3>
+                    <p>{w.line}</p>
+                    <div className="work-tags">{w.tags.map(t => <span key={t}>{t}</span>)}</div>
+                    <span className="work-cta">Tour it →</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── 02 PRICING ── */}
+        <section className="section" id="pricing" data-rex="right">
           <div className="wrap">
             <div className="sec-head lane-right" data-reveal>
-              <div className="mono">01 // the gap</div>
-              <h2>The hardest part was never the idea.</h2>
+              <div className="mono">02 // pricing</div>
+              <h2>Agency look. Indie prices.<br />No hourly billing, ever.</h2>
               <p>
-                Every creative knows the graveyard — projects that died between the spark and the
-                screen. Not from lack of talent. From <b>blank starts</b>, <b>context switching</b>,
-                and <b>momentum decay</b>.
+                Fixed prices, quoted before work starts. The free mock comes first either way —
+                you never pay to find out what you'd be getting.
+              </p>
+            </div>
+            <div className="tier-row" data-reveal-group>
+              {TIERS.map(t => (
+                <div className={`tier glass ${t.hot ? 'tier-hot' : ''}`} key={t.name}>
+                  <div className="mono">{t.name}</div>
+                  <div className="tier-price">{t.price}</div>
+                  <p className="tier-line">{t.line}</p>
+                  <ul>{t.items.map(i => <li key={i}>{i}</li>)}</ul>
+                </div>
+              ))}
+            </div>
+            <p className="rex-line" data-reveal>
+              <span className="rex-tag">REX</span>
+              "The mock is free because the work sells itself. Start the form — I'll handle the rest."
+            </p>
+          </div>
+        </section>
+
+        {/* ── 03 PRAX ── */}
+        <section className="section" id="prax" data-rex="left">
+          <div className="wrap">
+            <div className="sec-head lane-left" data-reveal>
+              <div className="mono">03 // the system behind the speed</div>
+              <h2>Built on PRAX.</h2>
+              <p>
+                PRAX is my own creative output system — context engineering, an AI conductor named REX
+                (the orb that's been following you), and a pipeline that goes from blank page to shipped
+                site in days, not weeks. It's why a one-person studio can move like an agency.
               </p>
             </div>
             <div className="pain-row" data-reveal-group>
               <div className="pain">
-                <div className="glyph">{'>_ empty'}</div>
-                <h3>Blank starts</h3>
-                <p>Every tool opens to an empty page and silently asks you to already know everything.</p>
+                <div className="glyph">{'ctx > 90%'}</div>
+                <h3>Context first</h3>
+                <p>Your 3-minute form + your Google listing become a full build context before I touch a pixel. Nothing generic.</p>
               </div>
               <div className="pain">
-                <div className="glyph">{'[][][][]'}</div>
-                <h3>Context switching</h3>
-                <p>Ten tabs, four apps, zero flow. Each switch taxes exactly the attention you were trying to spend.</p>
+                <div className="glyph">{'>_ ship'}</div>
+                <h3>Days, not weeks</h3>
+                <p>The four sites above were designed, built, and made tourable in days. Your LAUNCH site goes live in seven.</p>
               </div>
               <div className="pain">
-                <div className="glyph">{'▂▂▁▁__'}</div>
-                <h3>Momentum decay</h3>
-                <p>A day away becomes a week. Coming back costs more than leaving did — and the project quietly dies.</p>
+                <div className="glyph">{'◉ REX'}</div>
+                <h3>Nothing forgotten</h3>
+                <p>Every detail you give me lives in the system — your license number, your best reviews, the job that makes you money.</p>
               </div>
             </div>
-            <p className="rex-line" data-reveal>
-              <span className="rex-tag">REX</span>
-              "Most tools hand you a blank page. I hand you a running start."
-            </p>
           </div>
         </section>
 
-        {/* ── 02 CONTEXT ENGINEERING ── */}
-        <section className="section" id="workflow" data-rex="left">
-          <div className="wrap">
-            <div className="sec-head lane-left" data-reveal>
-              <div className="mono">02 // context engineering</div>
-              <h2>Don't start working.<br />Start knowing.</h2>
-              <p>
-                PRAX is designed around <b>context engineering</b> — and the workflow guides you
-                through it. Before you execute, it scores how ready your context is: what's known,
-                what's guessed, what's missing. The gaps become your next moves.
-              </p>
-            </div>
-            <div className="bento" data-reveal-group>
-              <div className="cell cell-score">
-                <div className="mono">context confidence</div>
-                <h3>One score before you build</h3>
-                <p>Confidence is the inverse of what the system would have to guess.</p>
-                <div className="score-stage">
-                  <div className="score-ring">
-                    <svg viewBox="0 0 210 210">
-                      <defs>
-                        <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#8fb0ff" />
-                          <stop offset="100%" stopColor="#3b73f7" />
-                        </linearGradient>
-                      </defs>
-                      <circle cx="105" cy="105" r="90" fill="none" stroke="rgba(139,148,168,0.15)" strokeWidth="9" />
-                      <circle
-                        className="score-arc" cx="105" cy="105" r="90" fill="none"
-                        stroke="url(#scoreGrad)" strokeWidth="9" strokeLinecap="round"
-                        strokeDasharray={RING_C} strokeDashoffset={RING_C * 0.82}
-                      />
-                    </svg>
-                    <div className="score-num"><b>18</b><span>ready</span></div>
-                  </div>
-                </div>
-                <div className="score-caption">↕ scroll raises the score — that's the workflow</div>
-              </div>
-              <div className="cell cell-wide">
-                <div className="mono">sessions</div>
-                <h3>Guided sessions</h3>
-                <p>Real starts and real ends. Sessions reconstruct themselves from real signal — commits, notes, captured ideas — never from what you remembered to log.</p>
-              </div>
-              <div className="cell cell-half">
-                <div className="mono">gaps</div>
-                <h3>The gap list</h3>
-                <p>Missing context becomes a concrete to-do list instead of background anxiety.</p>
-              </div>
-              <div className="cell cell-third">
-                <div className="mono">focus</div>
-                <h3>One thing at a time</h3>
-                <p>The workflow surfaces a single next action. Everything else waits its turn.</p>
-              </div>
-            </div>
-            <div className="flow-strip" data-reveal-group>
-              <div className="flow-step">
-                <div className="mono">step 01</div>
-                <h3>Talk it out</h3>
-                <p>Start from a conversation, not a form. Say what you're trying to make.</p>
-              </div>
-              <div className="flow-arrow">→</div>
-              <div className="flow-step">
-                <div className="mono">step 02</div>
-                <h3>Score the context</h3>
-                <p>PRAX measures what it would still have to guess.</p>
-              </div>
-              <div className="flow-arrow">→</div>
-              <div className="flow-step">
-                <div className="mono">step 03</div>
-                <h3>Close the gaps</h3>
-                <p>Each gap is a concrete question. Answer, and the score climbs.</p>
-              </div>
-              <div className="flow-arrow">→</div>
-              <div className="flow-step">
-                <div className="mono">step 04</div>
-                <h3>Execute</h3>
-                <p>Build with the full picture — and re-score any time it shifts.</p>
-              </div>
-            </div>
-            <p className="rex-line" data-reveal>
-              <span className="rex-tag">REX</span>
-              "I score what I'd have to guess. Close the gaps — then we build."
-            </p>
-          </div>
-        </section>
-
-        {/* ── 03 ADHD FOUNDATION ── */}
-        <section className="section" id="foundation" data-rex="right">
+        {/* ── 04 GUARANTEE ── */}
+        <section className="section" id="about" data-rex="right">
           <div className="wrap">
             <div className="sec-head lane-right" data-reveal>
-              <div className="mono">03 // the foundation</div>
-              <h2>Built on ADHD.<br />Not patched for it.</h2>
+              <div className="mono">04 // the guarantee</div>
+              <h2>Full effort. Every project.<br />That's the deal.</h2>
               <p>
-                PRAX isn't a productivity app with an ADHD mode bolted on. The foundation is the
-                science of attention, momentum, and dopamine — the workflow <b>assumes your brain</b>{' '}
-                instead of fighting it.
+                I'm Jackson — a Kansas City developer running a real LLC, not a template mill.
+                Small enough that your project is <b>the</b> project. You get me, my full attention,
+                and a site I'd put my own name under — because I do, in the footer.
               </p>
             </div>
-            <div className="feat-rows" data-reveal-group>
-              <div className="feat">
-                <span className="n">/01</span>
-                <h3>Momentum-aware</h3>
-                <p>The system knows when you're depleted and changes what it asks of you.</p>
-              </div>
-              <div className="feat">
-                <span className="n">/02</span>
-                <h3>Zero manual config</h3>
-                <p>If data can compute the answer, you are never asked to fill in a form.</p>
-              </div>
-              <div className="feat">
-                <span className="n">/03</span>
-                <h3>Ritual over discipline</h3>
-                <p>Session start and end are rituals, not willpower checks. Showing up is the whole job.</p>
-              </div>
-              <div className="feat">
-                <span className="n">/04</span>
-                <h3>Recovery-first</h3>
-                <p>Health gates the work. A sustainable pace ships more than a heroic sprint ever will.</p>
-              </div>
-            </div>
-            <p className="rex-line" data-reveal>
-              <span className="rex-tag">REX</span>
-              "Your brain was never the problem. The workflow was."
-            </p>
-          </div>
-        </section>
-
-        {/* ── 04 COMMUNITY ── */}
-        <section className="section" id="community" data-rex="left">
-          <div className="wrap">
-            <div className="sec-head lane-left" data-reveal>
-              <div className="mono">04 // community</div>
-              <h2>Aspiring game devs,<br />in one place.</h2>
-              <p>
-                PRAX grows into a community — a place to ask questions, share progress, and find
-                collaborators building the same dream at the same stage you are.
-              </p>
-            </div>
-            <div className="orbit-row" data-reveal-group>
-              <div className="orbit-card">
-                <div className="mono">share</div>
-                <h3>Show the process</h3>
-                <p>Devlogs, builds, breakthroughs, failures — progress is the content.</p>
-              </div>
-              <div className="orbit-card">
-                <div className="mono">ask</div>
-                <h3>Ask anything</h3>
-                <p>Stuck on a shader, a system, a launch? Someone here got un-stuck last week.</p>
-              </div>
-              <div className="orbit-card">
-                <div className="mono">team up</div>
-                <h3>Build together</h3>
-                <p>Find the artist to your programmer — collaborators at your stage, not gatekeepers.</p>
-              </div>
-            </div>
-            <p className="rex-line" data-reveal>
-              <span className="rex-tag">REX</span>
-              "Nobody ships alone. The people are part of the system."
-            </p>
-          </div>
-        </section>
-
-        {/* ── 05 PROMOTION ── */}
-        <section className="section" id="promotion" data-rex="right">
-          <div className="wrap">
-            <div className="sec-head lane-right" data-reveal>
-              <div className="mono">05 // promotion</div>
-              <h2>Finish it.<br />Then get it seen.</h2>
-              <p>
-                A dedicated promotion space is part of every PRAX — your finished work living in
-                public, think <b>itch.io with a dev platform underneath it</b>. Making the thing is
-                half the battle. PRAX helps with the other half.
-              </p>
-            </div>
-            <div className="orbit-row" data-reveal-group>
-              <div className="orbit-card">
-                <div className="mono">shelf</div>
-                <h3>Your public shelf</h3>
-                <p>Every project you ship gets a home that's ready to be shared the moment it exists.</p>
-              </div>
-              <div className="orbit-card">
-                <div className="mono">platform</div>
-                <h3>Dev platform built in</h3>
-                <p>Not just a storefront — the platform you built it on is the platform it launches from.</p>
-              </div>
-              <div className="orbit-card">
-                <div className="mono">reach</div>
-                <h3>Discovery</h3>
-                <p>A community of players and makers who want to find exactly what you just made.</p>
-              </div>
-            </div>
-            <p className="rex-line" data-reveal>
-              <span className="rex-tag">REX</span>
-              "Finishing is half the battle. Being seen is the other half — I help with both."
-            </p>
-          </div>
-        </section>
-
-        {/* ── 06 BUSINESS ── */}
-        <section className="section" id="business" data-rex="left">
-          <div className="wrap">
-            <div className="sec-head lane-left" data-reveal>
-              <div className="mono">06 // business</div>
-              <h2>From projects<br />to businesses.</h2>
-              <p>
-                PRAX has a business management side — in development now and <b>dogfooded on two
-                real companies</b> before it ever ships to you. When your project grows into
-                something that pays, PRAX grows with it.
-              </p>
-            </div>
-            <div className="orbit-row" data-reveal-group>
-              <div className="orbit-card">
-                <div className="mono">graduate</div>
-                <h3>Project → venture</h3>
-                <p>The same workflow that shipped the work starts running the business behind it.</p>
-              </div>
-              <div className="orbit-card">
-                <div className="mono">proof</div>
-                <h3>Dogfooded daily</h3>
-                <p>Every business feature runs two real businesses before it reaches your PRAX.</p>
-              </div>
-              <div className="orbit-card">
-                <div className="mono">one system</div>
-                <h3>No eleventh app</h3>
-                <p>Creative output and business ops in the same workflow, sharing the same context.</p>
-              </div>
-            </div>
-            <p className="rex-line" data-reveal>
-              <span className="rex-tag">REX</span>
-              "When your project grows up, I grow with it."
-            </p>
-          </div>
-        </section>
-
-        {/* ── CTA ── */}
-        <section className="cta" id="join" data-rex="right">
-          <div className="cta-glow" />
-          <div className="wrap">
-            <div className="mono" data-reveal>built in the open</div>
-            <h2 data-reveal>Follow the build.</h2>
-            <p className="cta-sub" data-reveal>
-              PRAX is in active development. The Patreon and Instagram are landing soon —
-              this site is where it starts.
-            </p>
-            <div className="hero-ctas" data-reveal>
-              <a className="btn btn-primary" href="#join">Patreon <span className="soon">soon</span></a>
-              <a className="btn btn-ghost" href="#join">Instagram <span className="soon">soon</span></a>
-            </div>
-
-            <div className="roadmap" data-reveal-group>
-              <div className="stage live">
-                <div className="when">now</div>
-                <h3>Creative output</h3>
-                <p>Context engineering + the ADHD-first workflow, guided by REX.</p>
-              </div>
-              <div className="stage">
-                <div className="when">next</div>
-                <h3>Community</h3>
-                <p>Aspiring game developers sharing, asking, and building together.</p>
-              </div>
-              <div className="stage">
-                <div className="when">then</div>
-                <h3>Promotion</h3>
-                <p>Your public shelf — an itch.io-style space with a dev platform underneath.</p>
-              </div>
-              <div className="stage">
-                <div className="when">later</div>
-                <h3>Business</h3>
-                <p>The management side, dogfooded on two real companies first.</p>
-              </div>
-            </div>
-
-            <div className="manifesto glass" data-reveal>
-              <div className="mono">the doctrine</div>
-              <p>
-                Craft over slop. AI in PRAX edits, arranges, and elevates <em>real work</em> —
-                it never replaces the human making it.
-              </p>
+            <div className="about-facts" data-reveal-group>
+              <div className="fact glass"><b>KC</b><span>local — I answer, same timezone, no ticket queue</span></div>
+              <div className="fact glass"><b>7 days</b><span>LAUNCH sites go live in a week or it's free</span></div>
+              <div className="fact glass"><b>$0</b><span>the mock is free and yours to keep either way</span></div>
             </div>
           </div>
         </section>
 
-        <footer className="wrap footer">
-          <span>© 2026 JCT Developments LLC — PRAX</span>
-          <div className="links">
-            <a href="#top">Top</a>
-            <a href="#workflow">Workflow</a>
-            <a href="#join">Follow</a>
+        {/* ── CLOSING CTA ── */}
+        <section className="section" id="join" data-rex="center">
+          <div className="wrap closing" data-reveal>
+            <div className="mono">READY WHEN YOU ARE</div>
+            <h2>Three minutes. Free mock.<br />Your call after that.</h2>
+            <a className="btn btn-primary btn-big" href="/start/">Start the form →</a>
           </div>
-        </footer>
+        </section>
       </main>
+
+      <footer className="footer">
+        <div className="wrap foot-inner">
+          <span className="mono">JACKSON TALLEY · JCT DEVELOPMENTS LLC · KANSAS CITY</span>
+          <span className="mono">prax.design — built on PRAX, guided by REX</span>
+        </div>
+      </footer>
     </>
   )
 }
