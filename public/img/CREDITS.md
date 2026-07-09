@@ -20,3 +20,6 @@ All photos from Unsplash (unsplash.com), standard Unsplash License
 - engine.jpg — Chad Kirchoff
 - bodywork.jpg — Mehmet Talha Onuk
 - finished.jpg — Laurel and Michael Evans
+- refinish-before/after.jpg (hood) — Skylar Kang (Pexels; damage composited in Blender)
+- glamour.jpg — Jack Murphy (Pexels)
+- gun.png — "Harbor Freight spray gun" 3D scan, Sketchfab, CC-BY — re-rendered in Blender

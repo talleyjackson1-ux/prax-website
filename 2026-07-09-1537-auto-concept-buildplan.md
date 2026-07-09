@@ -1,6 +1,9 @@
 # THE REFINISH — Summit Auto Services concept, production build plan
-2026-07-09 · status: **READY TO BUILD, HOLD until dad re-fills the new /start form** (his answers +
-the say-anything page feed one more integration pass first — Jackson's call 2026-07-09).
+2026-07-09 · status: **v1 BUILT same day** (Jackson greenlit stock build; dad's new form round feeds
+a content/photo pass later). Live at /mock/summit-auto-services/. Before/after = ONE Pexels photo
+(damage composited in Blender numpy — same piece, same angle, guaranteed); gun = CC-BY Sketchfab
+scan re-rendered w/ alpha; mist + tape = procedural. Upgrade paths still valid below (esp. dad's
+real before/after pair + a higher-grade gun render).
 
 The concept in one line: **the site repairs and repaints itself as you scroll — because that's the
 work.** Photoreal, near-4K, zero cartoon.
