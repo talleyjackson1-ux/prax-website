@@ -30,8 +30,14 @@ body::after {
 
 /* ── ACT 0+1 — the spray stage ─────────────────────────────────────────────── */
 .rf-stage { position: relative; height: 100vh; overflow: hidden; background: #0a0c10; }
-.rf-layer { position: absolute; inset: 0; }
-.rf-layer img.rf-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rf-layer { position: absolute; inset: 0; overflow: hidden; }
+/* whole photo visible (contain) over a blurred fill — nothing important cropped */
+.rf-photo-blur {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  filter: blur(36px) brightness(0.72); transform: scale(1.12);
+}
+.rf-photo-fit { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.rf-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rf-after { will-change: clip-path; clip-path: inset(0 0 0 100%); }
 
 .rf-sentence {
@@ -61,12 +67,17 @@ body::after {
 .rf-mp1 { top: 6vh; left: -4vw; }
 .rf-mp2 { bottom: 4vh; left: 8vw; }
 
-/* wide strip: gun at the left end, air hose running off the right edge */
+/* chrome gun (square render, sized in px by the engine) + matte-gray hose strip */
 .rf-gun {
-  position: absolute; z-index: 5; top: 16vh; left: 0; width: 120vw; max-width: none;
+  position: absolute; z-index: 5; top: 0; left: 0; height: 68vh; width: auto; max-width: none;
   will-change: transform, opacity; pointer-events: none;
-  filter: drop-shadow(0 26px 48px rgba(0, 0, 0, 0.55));
-  transform: translate3d(114vw, 0, 0);
+  filter: drop-shadow(0 22px 40px rgba(0, 0, 0, 0.5));
+  transform: translate3d(120vw, 16vh, 0);
+}
+.rf-hose {
+  position: absolute; z-index: 4; height: 9vh; left: 120vw; top: 70vh;
+  object-fit: fill; will-change: left, top, width, opacity; pointer-events: none;
+  filter: brightness(0.62) drop-shadow(0 14px 22px rgba(0, 0, 0, 0.4));   /* matte gray, not washed */
 }
 
 /* the first page — slides in from the right over the fresh paint */
@@ -196,7 +207,7 @@ body::after {
 
 /* reduced motion / static fallback: 50/50 split poster, no pins */
 .rf-static .rf-after { clip-path: inset(0 0 0 50%) !important; }
-.rf-static .rf-gun, .rf-static .rf-mistband, .rf-static .rf-fold { display: none; }
+.rf-static .rf-gun, .rf-static .rf-hose, .rf-static .rf-mistband, .rf-static .rf-fold { display: none; }
 .rf-static .rf-hero { transform: none; }
 .rf-static .rf-cover { clip-path: inset(0 0 100% 0) !important; }
 

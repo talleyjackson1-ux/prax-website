@@ -37,6 +37,7 @@ export default function Refinish() {
   const stageRef = useRef<HTMLDivElement>(null)
   const afterRef = useRef<HTMLDivElement>(null)
   const gunRef = useRef<HTMLImageElement>(null)
+  const hoseRef = useRef<HTMLImageElement>(null)
   const mistRef = useRef<HTMLDivElement>(null)
   const heroRef = useRef<HTMLDivElement>(null)
   const peelRef = useRef<HTMLDivElement>(null)
@@ -54,35 +55,41 @@ export default function Refinish() {
     gsap.ticker.add(tick)
     gsap.ticker.lagSmoothing(0)
 
-    const gun = gunRef.current!, after = afterRef.current!, mist = mistRef.current!
+    const gun = gunRef.current!, after = afterRef.current!, mist = mistRef.current!, hose = hoseRef.current!
 
-    // ACT 0+1 — the spray pass. Gun art is a wide strip (gun left + hose running
-    // off-right); nozzle sits ~7% into it. The BLACK mist band (~1/3 screen, full
-    // height) rides the seam so the transition line is never visible.
-    const seam = { p: 0 }
-    const GUN_W = 120                                        // vw — hose spans the screen
+    // ACT 0+1 — the spray pass. ONE seam value (in % of viewport width) drives the
+    // clip edge, the mist band center, the gun and the hose — all computed in PX
+    // from the live viewport, so nothing can drift apart at any screen size.
+    // Gun render metrics (measured from the PNG): nozzle at 23.5% of its width;
+    // air inlet (hose connect) at ~57% width / ~90% height.
+    const seam = { v: 112 }                                  // % of viewport width
     const act1 = gsap.timeline({
       scrollTrigger: { trigger: stageRef.current, start: 'top top', end: '+=3400', scrub: 0.35, pin: true },
     })
     act1.to('.rf-sentence', { autoAlpha: 0, filter: 'blur(8px)', duration: 0.1 }, 0.02)
     act1.to(seam, {
-      p: 1, duration: 0.9, ease: 'none',
+      v: -45, duration: 0.85, ease: 'none',
       onUpdate: () => {
-        const p = seam.p
-        const gunX = 112 - p * 210                           // nozzle crosses 0 at p≈0.57
-        gun.style.transform = `translate3d(${gunX}vw, ${Math.sin(p * 8) * 1.6}vh, 0)`
-        const nozzle = gunX + GUN_W * 0.07
-        after.style.clipPath = `inset(0 0 0 ${Math.max(0, Math.min(100, nozzle))}%)`
-        mist.style.transform = `translate3d(${nozzle - 17}vw, 0, 0)`   // band centered on the seam
+        const W = window.innerWidth, H = window.innerHeight
+        const sPx = (seam.v / 100) * W
+        after.style.clipPath = `inset(0 0 0 ${Math.max(0, Math.min(100, seam.v))}%)`
+        const gunH = Math.min(0.68 * H, 700), gunW = gunH     // original-size look, square render
+        const gunX = sPx - 0.235 * gunW                       // nozzle glued to the seam
+        const gunY = 0.16 * H + Math.sin(seam.v / 16) * 0.012 * H
+        gun.style.transform = `translate3d(${gunX}px, ${gunY}px, 0)`
+        gun.style.height = `${gunH}px`
+        const hx = gunX + 0.58 * gunW
+        hose.style.left = `${hx}px`
+        hose.style.top = `${gunY + 0.9 * gunH}px`
+        hose.style.width = `${Math.max(0, W - hx + 80)}px`
+        mist.style.transform = `translate3d(${sPx - 0.17 * W}px, 0, 0)`   // band centered on the seam
       },
     }, 0.05)
-    act1.to(mist, { autoAlpha: 1, duration: 0.05 }, 0.08)
-    act1.to(mist, { autoAlpha: 0, duration: 0.12 }, 0.62)   // cloud settles once the seam is done
-    act1.to(gun, { autoAlpha: 0, duration: 0.08 }, 0.78)    // painter steps away
-    act1.fromTo(heroRef.current, { x: '100vw' }, { x: 0, ease: 'power2.out', duration: 0.3 }, 0.62)
-
-    // mist breathes on its own clock (not scrubbed) — paint hangs in the air
-    gsap.to('.rf-mist-puff', { scale: '+=0.16', opacity: 0.85, duration: 1.4, yoyo: true, repeat: -1, stagger: 0.4, ease: 'sine.inOut' })
+    act1.to([mist], { autoAlpha: 1, duration: 0.04 }, 0.08)
+    act1.to([mist], { autoAlpha: 0, duration: 0.1 }, 0.6)    // cloud settles once the seam is done
+    act1.to([gun, hose], { autoAlpha: 0, duration: 0.08 }, 0.72)  // painter steps away
+    act1.fromTo(heroRef.current, { x: '100vw' }, { x: 0, ease: 'power2.out', duration: 0.26 }, 0.74)
+    // NO mist breathing — it holds its darkest, densest state (Jackson 2026-07-09)
 
     // ACT 2 — the tape peel: page lifts from the BOTTOM-RIGHT CORNER like a strip
     // of masking tape, diagonal edge slightly uneven, fold strip riding the line.
@@ -133,22 +140,27 @@ export default function Refinish() {
     <div className="rf">
       {/* ── ACT 0+1: damage → spray pass ── */}
       <div className="rf-stage" ref={stageRef}>
-        {/* REAL pair — same panel, same angle (placeholder crop of the licensed
-            reference until the Shutterstock license / dad's own pair lands) */}
+        {/* REAL pair — same panel, same angle. Placeholder until dad's own pair
+            lands; whole image shown (contain) over a blurred fill so nothing is
+            zoom-cropped away. Swapping photos = drop-in, the mechanic is the site. */}
         <div className="rf-layer">
-          <img className="rf-photo" src="/img/auto/pair-before.jpg" alt="Crumpled front fender — before" />
+          <img className="rf-photo-blur" src="/img/auto/pair-before.jpg" alt="" aria-hidden="true" />
+          <img className="rf-photo-fit" src="/img/auto/pair-before.jpg" alt="Crumpled front fender — before" />
         </div>
         <div className="rf-layer rf-after" ref={afterRef}>
-          <img className="rf-photo" src="/img/auto/pair-after.jpg" alt="The same fender repaired — after" />
+          <img className="rf-photo-blur" src="/img/auto/pair-after.jpg" alt="" aria-hidden="true" />
+          <img className="rf-photo-fit" src="/img/auto/pair-after.jpg" alt="The same fender repaired — after" />
         </div>
 
-        {/* BLACK paint cloud — full height, ~1/3 of the screen, hides the seam */}
+        {/* BLACK paint cloud — full height, ~1/3 of the screen, holds its densest
+            state (no pulsing) and rides the seam so the line is never visible */}
         <div className="rf-mistband" ref={mistRef}>
           <img className="rf-mist-col" src="/img/auto/mist-column.png" alt="" aria-hidden="true" />
           <img className="rf-mist-puff rf-mp1" src="/img/auto/mist-1.png" alt="" aria-hidden="true" />
           <img className="rf-mist-puff rf-mp2" src="/img/auto/mist-2.png" alt="" aria-hidden="true" />
         </div>
-        <img className="rf-gun" ref={gunRef} src="/img/auto/gun.png" alt="HVLP paint spray gun with air hose" />
+        <img className="rf-hose" ref={hoseRef} src="/img/auto/hose.png" alt="" aria-hidden="true" />
+        <img className="rf-gun" ref={gunRef} src="/img/auto/gun.png" alt="Chrome HVLP paint spray gun" />
 
         <div className="rf-sentence">
           <h1>minor to medium body damage? contact me.</h1>

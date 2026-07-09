@@ -225,8 +225,8 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 scn = bpy.context.scene
 bpy.ops.import_scene.gltf(filepath=os.path.join(ROOT, 'assets_work', 'spray-gun', 'scene.gltf'))
 
-# POLISHED metal (Jackson: shiny, lighting matched to the hood photo — bright
-# overcast sky from above, dark ground, cool white balance)
+# SHINY CHROME (Jackson: chrome gun + chrome cup, NOT black) — bright silver,
+# mirror-low roughness; the high-contrast env (bright sky / dark ground) makes it read
 for mat in bpy.data.materials:
     if not mat.use_nodes: continue
     bsdf = next((n for n in mat.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
@@ -234,9 +234,9 @@ for mat in bpy.data.materials:
     for link in list(mat.node_tree.links):
         if link.to_node == bsdf and link.to_socket.name == 'Base Color':
             mat.node_tree.links.remove(link)
-    bsdf.inputs['Base Color'].default_value = (0.75, 0.77, 0.8, 1)
+    bsdf.inputs['Base Color'].default_value = (0.87, 0.89, 0.92, 1)
     bsdf.inputs['Metallic'].default_value = 1.0
-    bsdf.inputs['Roughness'].default_value = 0.14
+    bsdf.inputs['Roughness'].default_value = 0.07
 
 # frame the gun: gather bounds
 mins = np.array([1e9] * 3); maxs = np.array([-1e9] * 3)
@@ -254,9 +254,9 @@ mv = __import__('mathutils')
 # nozzle side (nozzle = -X from the profile framing)
 cup_mat = bpy.data.materials.new('cup'); cup_mat.use_nodes = True
 cb = cup_mat.node_tree.nodes['Principled BSDF']
-cb.inputs['Base Color'].default_value = (0.78, 0.8, 0.83, 1)
+cb.inputs['Base Color'].default_value = (0.87, 0.89, 0.92, 1)   # chrome, matches the gun
 cb.inputs['Metallic'].default_value = 1.0
-cb.inputs['Roughness'].default_value = 0.12
+cb.inputs['Roughness'].default_value = 0.07
 
 cup_x = mins[0] + size * 0.28
 cup_r = size * 0.17
@@ -276,30 +276,8 @@ stem = bpy.context.object; stem.data.materials.append(cup_mat)
 for ob in (cup, lid, knob, stem):
     m = ob.modifiers.new('bev', 'BEVEL'); m.width = size * 0.004; m.segments = 2
 
-# ── the AIR HOSE — from the handle bottom, sagging, off-frame right ──────────
-hose_mat = bpy.data.materials.new('hose'); hose_mat.use_nodes = True
-hb = hose_mat.node_tree.nodes['Principled BSDF']
-hb.inputs['Base Color'].default_value = (0.045, 0.045, 0.05, 1)
-hb.inputs['Roughness'].default_value = 0.5
-
-curve = bpy.data.curves.new('hose', 'CURVE'); curve.dimensions = '3D'
-curve.bevel_depth = size * 0.032; curve.bevel_resolution = 6; curve.resolution_u = 24
-sp = curve.splines.new('NURBS')
-hx, hz = maxs[0] - size * 0.12, mins[2] + size * 0.04
-pts = [
-    (hx, center[1], hz),
-    (hx + size * 0.2, center[1], hz - size * 0.1),
-    (hx + size * 1.0, center[1] + size * 0.08, hz + size * 0.02),
-    (hx + size * 2.2, center[1] - size * 0.05, hz + size * 0.28),
-    (hx + size * 3.6, center[1], hz + size * 0.12),
-    (hx + size * 5.0, center[1] + size * 0.1, hz + size * 0.4),
-]
-sp.points.add(len(pts) - 1)
-for p, (px, py, pz) in zip(sp.points, pts):
-    p.co = (px, py, pz, 1)
-sp.use_endpoint_u = True
-hose = bpy.data.objects.new('hose', curve); scn.collection.objects.link(hose)
-hose.data.materials.append(hose_mat)
+# (hose renders as its OWN strip in a second pass — the gun stays a tight square
+#  asset that scales by viewport HEIGHT; the strip stretches to the screen edge)
 
 # ── lighting matched to the hood photo: huge bright overcast sky above, dark
 #    ground below → high-contrast reflections in the polished metal ───────────
@@ -319,27 +297,86 @@ gm = bpy.data.materials.new('ground'); gm.use_nodes = True
 gm.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.015, 0.016, 0.02, 1)
 ground.data.materials.append(gm)
 ground.visible_camera = False
+# BRIGHT SKY environment — chrome is a mirror; it can only be as bright as the
+# world it reflects. Nishita sky + dark ground card = the classic chrome look.
 world = bpy.data.worlds.new('w'); scn.world = world
 world.use_nodes = True
-world.node_tree.nodes['Background'].inputs[0].default_value = (0.32, 0.35, 0.4, 1)
-world.node_tree.nodes['Background'].inputs[1].default_value = 0.3   # darker env → chrome contrast
+wnodes = world.node_tree.nodes; wlinks = world.node_tree.links
+sky = wnodes.new('ShaderNodeTexSky')
+try:
+    sky.sky_type = 'NISHITA'; sky.sun_elevation = math.radians(55); sky.sun_intensity = 0.35
+except Exception:
+    pass
+wlinks.new(sky.outputs['Color'], wnodes['Background'].inputs['Color'])
+wnodes['Background'].inputs[1].default_value = 0.55
 
-# ── camera: straight-on profile at fixed distance; shift_x slides the frame so
-#    the gun sits left and the hose runs off the right edge (deterministic)
+# ── camera: straight-on, SQUARE frame, gun + cup filling it (sized by vh in CSS)
+all_min_z, all_max_z = mins[2], cup_base_z + size * 0.44
+mid_z = (all_min_z + all_max_z) / 2
+extent = max(maxs[0] - mins[0], all_max_z - all_min_z) * 1.12
+D = extent / 0.72                      # lens 50 on 36mm → frame ≈ 0.72·D
 cam_data = bpy.data.cameras.new('cam'); cam_data.lens = 50
-cam_data.shift_x = 0.32
 cam = bpy.data.objects.new('cam', cam_data); scn.collection.objects.link(cam)
 scn.camera = cam
-cam.location = (center[0], center[1] - size * 5.2, center[2] + size * 0.2)
-direc = mv.Vector((center[0], center[1], center[2] + size * 0.2)) - mv.Vector(cam.location)
+cam.location = (center[0], center[1] - D, mid_z)
+direc = mv.Vector((center[0], center[1], mid_z)) - mv.Vector(cam.location)
 cam.rotation_euler = direc.to_track_quat('-Z', 'Y').to_euler()
 
 scn.render.engine = 'CYCLES'
 scn.cycles.samples = 128
 scn.render.film_transparent = True
-scn.render.resolution_x = 3584; scn.render.resolution_y = 1536
+scn.render.resolution_x = 2048; scn.render.resolution_y = 2048
 scn.render.image_settings.file_format = 'PNG'
 scn.render.image_settings.color_mode = 'RGBA'
 scn.render.filepath = os.path.join(OUT, 'gun.png')
+bpy.ops.render.render(write_still=True)
+
+# measure the nozzle (leftmost opaque column) + handle (rightmost) so the page
+# can glue the seam to the actual pixels, not a guess
+gimg = bpy.data.images.load(os.path.join(OUT, 'gun.png'))
+gw, gh = gimg.size
+garr = np.array(gimg.pixels[:], dtype=np.float32).reshape(gh, gw, 4)
+cols = (garr[..., 3] > 0.35).any(axis=0)
+left_frac = float(np.argmax(cols)) / gw
+right_frac = float(gw - np.argmax(cols[::-1])) / gw
+rows_r = (garr[..., 3] > 0.35)[:, int(gw * right_frac) - int(gw * 0.06):].any(axis=1)
+handle_y_frac = 1.0 - float(np.argmax(rows_r)) / gh    # top-origin fraction of handle-side extent
+print(f'GUN METRICS nozzle_x={left_frac:.3f} handle_x={right_frac:.3f} handle_y={handle_y_frac:.3f}')
+
+# ── HOSE — separate matte-gray strip, gentle sag, bleeding off both ends ─────
+bpy.ops.wm.read_factory_settings(use_empty=True)
+scn = bpy.context.scene
+hose_mat = bpy.data.materials.new('hose'); hose_mat.use_nodes = True
+hb = hose_mat.node_tree.nodes['Principled BSDF']
+hb.inputs['Base Color'].default_value = (0.27, 0.28, 0.3, 1)    # matte gray
+hb.inputs['Roughness'].default_value = 0.8
+curve = bpy.data.curves.new('hose', 'CURVE'); curve.dimensions = '3D'
+curve.bevel_depth = 0.15; curve.bevel_resolution = 8; curve.resolution_u = 32
+sp = curve.splines.new('NURBS')
+hpts = [(-1.0, 0, 0.1), (1.5, 0, -0.28), (4.0, 0, 0.18), (6.5, 0, -0.22), (9.0, 0, 0.12)]
+sp.points.add(len(hpts) - 1)
+for p, (px, py, pz) in zip(sp.points, hpts):
+    p.co = (px, py, pz, 1)
+sp.use_endpoint_u = True
+hose = bpy.data.objects.new('hose', curve); scn.collection.objects.link(hose)
+hose.data.materials.append(hose_mat)
+hl = bpy.data.lights.new('hl', 'AREA'); hl.energy = 3000; hl.size = 12
+hlo = bpy.data.objects.new('hl', hl); scn.collection.objects.link(hlo)
+hlo.location = (4, -3, 5); hlo.rotation_euler = (math.radians(35), 0, 0)
+hworld = bpy.data.worlds.new('hw'); scn.world = hworld
+hworld.use_nodes = True
+hworld.node_tree.nodes['Background'].inputs[0].default_value = (0.5, 0.5, 0.52, 1)
+hworld.node_tree.nodes['Background'].inputs[1].default_value = 0.6
+hcam_d = bpy.data.cameras.new('hcam'); hcam_d.type = 'ORTHO'; hcam_d.ortho_scale = 8.0
+hcam = bpy.data.objects.new('hcam', hcam_d); scn.collection.objects.link(hcam)
+scn.camera = hcam
+hcam.location = (4.0, -6, 0); hcam.rotation_euler = (math.radians(90), 0, 0)
+scn.render.engine = 'CYCLES'
+scn.cycles.samples = 64
+scn.render.film_transparent = True
+scn.render.resolution_x = 3072; scn.render.resolution_y = 384
+scn.render.image_settings.file_format = 'PNG'
+scn.render.image_settings.color_mode = 'RGBA'
+scn.render.filepath = os.path.join(OUT, 'hose.png')
 bpy.ops.render.render(write_still=True)
 print('DONE — all refinish assets written to', OUT)
