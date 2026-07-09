@@ -1,7 +1,9 @@
 /* /start — the client context-engineering intake.
-   Design rule: minimum viable context FAST. Only step 1 is required — the
-   LeadForge scraper + their Google listing fill the rest. 4 steps, ~3 min.
-   Wire submissions: create a form at formspree.io and paste the ID below. */
+   Design rules: minimum viable context FAST (only step 1 required — LeadForge +
+   their Google listing fill the rest) · presets TUNED PER TRADE (generic chips
+   made an auto shop pick "Repairs"; collision/body presets get real answers) ·
+   professional service voice — the builder's name appears exactly once, in the
+   thank-you at the end. Optional email copy: paste a formspree ID below. */
 import { useEffect, useMemo, useState } from 'react'
 
 /* Submissions land in the PRAX Supabase (freelance_leads). The publishable key
@@ -12,10 +14,67 @@ const FORM_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID' // optional email co
 const DRAFT_KEY = 'prax_start_draft'
 
 const TRADES = ['HVAC', 'Plumbing', 'Roofing', 'Electrical', 'Landscaping', 'Gym / Fitness', 'Auto', 'Cleaning', 'Other']
-const SERVICES_BY_DEFAULT = ['Repairs', 'Installs', 'Emergency service', 'Maintenance plans', 'Free estimates', 'Commercial work']
-const DIFFERENT = ['Family-owned', '24/7 availability', 'Upfront pricing', 'Licensed & certified', 'Fast response', 'Warranty-backed']
+
+/* Per-trade presets — the chips should read like the owner's own menu, not a
+   generic contractor's. Every trade keeps a write-your-own slot regardless. */
+interface TradePreset { services: string[]; different: string[]; bestJob: string }
+const GENERIC: TradePreset = {
+  services: ['Repairs', 'Installs', 'Emergency service', 'Maintenance plans', 'Free estimates', 'Commercial work'],
+  different: ['Family-owned', '24/7 availability', 'Upfront pricing', 'Licensed & certified', 'Fast response', 'Warranty-backed'],
+  bestJob: 'Your highest-value kind of job',
+}
+const PRESETS: Record<string, TradePreset> = {
+  HVAC: {
+    services: ['AC repair', 'Furnace & heating', 'New system installs', 'Maintenance plans', 'Duct work', 'Emergency service'],
+    different: ['Family-owned', '24/7 availability', 'Upfront pricing', 'NATE-certified', 'Fast response', 'Financing offered'],
+    bestJob: 'Full system replacements',
+  },
+  Plumbing: {
+    services: ['Emergency plumbing', 'Drain cleaning', 'Water heaters', 'Leak detection', 'Repiping', 'Fixture installs'],
+    different: ['Licensed & bonded', '24/7 availability', 'Flat-rate pricing', 'Family-owned', 'Fast response', 'Camera inspections'],
+    bestJob: 'Water heater replacements',
+  },
+  Roofing: {
+    services: ['Roof replacement', 'Storm & hail repair', 'Leak repair', 'Free inspections', 'Gutters', 'Metal roofing'],
+    different: ['Insurance claim help', 'Certified installers', 'Photo documentation', 'Family-owned', 'Warranty-backed', 'Local crews'],
+    bestJob: 'Full replacements (insurance)',
+  },
+  Electrical: {
+    services: ['Panel upgrades', 'Wiring & rewiring', 'Lighting', 'EV chargers', 'Emergency service', 'Inspections'],
+    different: ['Licensed & insured', 'Upfront pricing', 'Family-owned', 'Fast response', 'Warranty-backed', '24/7 availability'],
+    bestJob: 'Panel upgrades',
+  },
+  Landscaping: {
+    services: ['Mowing & maintenance', 'Landscape design', 'Hardscapes & patios', 'Irrigation', 'Tree & shrub care', 'Seasonal cleanup'],
+    different: ['Family-owned', 'Licensed & insured', 'Free estimates', 'Reliable schedule', 'Local crew', 'Photo portfolio'],
+    bestJob: 'Full landscape installs',
+  },
+  'Gym / Fitness': {
+    services: ['Memberships', 'Personal training', 'Group classes', '24/7 access', 'Nutrition coaching', 'Youth programs'],
+    different: ['No-contract options', 'Community feel', 'Certified trainers', 'Family-owned', 'Real equipment', 'First visit free'],
+    bestJob: 'Annual memberships',
+  },
+  Auto: {
+    services: ['Collision repair', 'Body & dent work', 'Paint', 'Mechanical repair', 'Brakes & suspension', 'Diagnostics'],
+    different: ['Family-owned', 'Insurance help', 'Straight estimates', 'Fast turnaround', 'Warranty-backed', 'Certified techs'],
+    bestJob: 'Collision jobs',
+  },
+  Cleaning: {
+    services: ['Residential cleaning', 'Deep cleans', 'Move-in / move-out', 'Commercial cleaning', 'Recurring service', 'Carpet & floors'],
+    different: ['Background-checked staff', 'Supplies included', 'Satisfaction guarantee', 'Family-owned', 'Flexible scheduling', 'Insured & bonded'],
+    bestJob: 'Recurring residential routes',
+  },
+}
+
 const GOALS = ['More calls', 'Look more professional', 'Beat a specific competitor', 'Show up on Google']
 const STYLES = ['Bold & dark', 'Clean & light', 'Classic & trusted']
+/* tiny palette previews — taste is easier to point at than to describe */
+const STYLE_SWATCH: Record<string, string[]> = {
+  'Bold & dark': ['#0b0b0e', '#e8442e', '#eef2f7'],
+  'Clean & light': ['#f6f4ef', '#1e3a5f', '#b3261e'],
+  'Classic & trusted': ['#10233c', '#c9a44a', '#f4efe4'],
+}
+const EXTRAS = ['Online booking', 'Financing section', '24/7 emergency banner', 'Before & after gallery']
 
 type Data = Record<string, string>
 
@@ -24,11 +83,12 @@ const empty: Data = {}
 /* Chip group with a WRITE-YOUR-OWN slot — presets that don't resonate push
    people away; letting them add their own take keeps them engaged and gives
    better context than any preset could. Custom entries become removable chips. */
-function Chips({ field, options, data, setData }: {
+function Chips({ field, options, data, setData, swatch }: {
   field: string
   options: string[]
   data: Data
   setData: React.Dispatch<React.SetStateAction<Data>>
+  swatch?: Record<string, string[]>
 }) {
   const [draft, setDraft] = useState('')
   const values = (data[field] ?? '').split('|').filter(Boolean)
@@ -46,7 +106,12 @@ function Chips({ field, options, data, setData }: {
   return (
     <div className="sf-chips">
       {options.map((o) => (
-        <button key={o} type="button" className={values.includes(o) ? 'on' : ''} onClick={() => flip(o)}>{o}</button>
+        <button key={o} type="button" className={values.includes(o) ? 'on' : ''} onClick={() => flip(o)}>
+          {swatch?.[o] && (
+            <span className="sf-sw">{swatch[o].map((c) => <i key={c} style={{ background: c }} />)}</span>
+          )}
+          {o}
+        </button>
       ))}
       {customs.map((c) => (
         <button key={c} type="button" className="on sf-chip-custom" onClick={() => flip(c)} title="tap to remove">{c} ✕</button>
@@ -79,6 +144,8 @@ export default function StartForm() {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setData((d) => ({ ...d, [k]: e.target.value }))
 
+  const preset = PRESETS[data.trade ?? ''] ?? GENERIC
+
   const step1Valid = useMemo(
     () => !!(data.business && data.trade && data.phone && data.city),
     [data.business, data.trade, data.phone, data.city],
@@ -92,7 +159,7 @@ export default function StartForm() {
         city: data.city, website: data.website, services: data.services, different: data.different,
         best_job: data.bestJob, years: data.years, license: data.license, reviews: data.reviews,
         logo: data.logo, photos: data.photos, goal: data.goal, style: data.style,
-        extras: data.extras, reference: data.reference,
+        extras: data.extras, reference: data.reference, notes: data.notes,
       }
       await fetch(`${SUPA_URL}/rest/v1/freelance_leads`, {
         method: 'POST',
@@ -122,13 +189,15 @@ export default function StartForm() {
         <div className="sf-kicker">REQUEST RECEIVED</div>
         <h2>Your free mock is in the queue.</h2>
         <p>
-          I'll build a homepage mock of <b>{data.business || 'your business'}</b> and send it to{' '}
-          <b>{data.email || data.phone}</b> within 48 hours. No strings — if you hate it, delete it.
+          A homepage mock for <b>{data.business || 'your business'}</b> will be built and sent to{' '}
+          <b>{data.email || data.phone}</b> within 48 hours. No calls, no pressure — you see the
+          work first, then decide.
         </p>
         <div className="sf-upsell">
-          <b>In a hurry?</b> Approve the mock and the LAUNCH package is <b>$250</b> — one-page site,
+          <b>Like what you see?</b> The LAUNCH package is <b>$250</b> — one-page site,
           click-to-call, quote form, SEO basics, live in 7 days.
         </div>
+        <p className="sf-sign">Thank you for your time. <b>— Jackson Talley</b></p>
       </div>
     )
   }
@@ -157,14 +226,14 @@ export default function StartForm() {
               </select>
             </label>
             <label>Phone<input value={data.phone ?? ''} onChange={set('phone')} type="tel" placeholder="(816) 555-0142" /></label>
-            <label>Email <small>(optional)</small><input value={data.email ?? ''} onChange={set('email')} type="email" placeholder="you@business.com" /></label>
+            <label>Email <small>(optional — where the mock gets sent)</small><input value={data.email ?? ''} onChange={set('email')} type="email" placeholder="you@business.com" /></label>
             <label>City / service area<input value={data.city ?? ''} onChange={set('city')} placeholder="Kansas City, MO" /></label>
             <label>Current website <small>(or "none")</small><input value={data.website ?? ''} onChange={set('website')} placeholder="none" /></label>
           </div>
           <div className="sf-row">
             <button className="sf-btn sf-btn-solid" disabled={!step1Valid} onClick={() => setStep(1)}>Continue — 2 more minutes</button>
             <button className="sf-btn" disabled={!step1Valid} onClick={submit}>
-              {sending ? 'Sending…' : "In a hurry? Submit now — I'll pull the rest from your Google listing"}
+              {sending ? 'Sending…' : 'Short on time? Send this now — the rest gets pulled from your Google listing'}
             </button>
           </div>
         </div>
@@ -174,11 +243,11 @@ export default function StartForm() {
         <div className="sf-step">
           <h2>YOUR BUSINESS <em>— all optional, all useful</em></h2>
           <div className="sf-label">Top services (pick up to 4 — or add your own)</div>
-          <Chips field="services" options={SERVICES_BY_DEFAULT} data={data} setData={setData} />
-          <div className="sf-label">What makes you different? (your words beat my presets)</div>
-          <Chips field="different" options={DIFFERENT} data={data} setData={setData} />
+          <Chips field="services" options={preset.services} data={data} setData={setData} />
+          <div className="sf-label">What makes you different? (your words beat any preset)</div>
+          <Chips field="different" options={preset.different} data={data} setData={setData} />
           <div className="sf-grid">
-            <label>Your most profitable kind of job<input value={data.bestJob ?? ''} onChange={set('bestJob')} placeholder="Full system replacements" /></label>
+            <label>Your most profitable kind of job<input value={data.bestJob ?? ''} onChange={set('bestJob')} placeholder={preset.bestJob} /></label>
             <label>Years in business<input value={data.years ?? ''} onChange={set('years')} placeholder="12" /></label>
             <label>License # <small>(shown on the site — builds trust)</small><input value={data.license ?? ''} onChange={set('license')} placeholder="MO #M-48210" /></label>
           </div>
@@ -191,7 +260,7 @@ export default function StartForm() {
 
       {step === 2 && (
         <div className="sf-step">
-          <h2>PROOF <em>— reviews sell better than anything I can write</em></h2>
+          <h2>PROOF <em>— your reviews do the selling</em></h2>
           <div className="sf-grid">
             <label>Google reviews link or rating<input value={data.reviews ?? ''} onChange={set('reviews')} placeholder="4.8 stars / maps link" /></label>
             <label>Logo?
@@ -222,16 +291,20 @@ export default function StartForm() {
           <div className="sf-label">#1 goal for the site</div>
           <Chips field="goal" options={GOALS} data={data} setData={setData} />
           <div className="sf-label">Style that fits you</div>
-          <Chips field="style" options={STYLES} data={data} setData={setData} />
+          <Chips field="style" options={STYLES} data={data} setData={setData} swatch={STYLE_SWATCH} />
           <div className="sf-label">Want any of these?</div>
-          <Chips field="extras" options={['Online booking', 'Financing section', '24/7 emergency banner']} data={data} setData={setData} />
+          <Chips field="extras" options={EXTRAS} data={data} setData={setData} />
           <div className="sf-grid">
             <label>A site you like (or hate)<input value={data.reference ?? ''} onChange={set('reference')} placeholder="competitor.com — hate it" /></label>
+            <label className="sf-full">Anything else worth knowing? <small>(the more context, the better the mock)</small>
+              <textarea rows={3} value={data.notes ?? ''} onChange={set('notes')}
+                placeholder="Slow season is winter · the owner's truck should be on the site · we sponsor the local little league…" />
+            </label>
           </div>
           <div className="sf-row">
             <button className="sf-btn" onClick={() => setStep(2)}>Back</button>
             <button className="sf-btn sf-btn-solid" disabled={!step1Valid || sending} onClick={submit}>
-              {sending ? 'Sending…' : 'Send it — free mock in 48h'}
+              {sending ? 'Sending…' : 'Send it — free mock within 48 hours'}
             </button>
           </div>
           {!step1Valid && <p className="sf-warn">Step 1 (name, type, phone, city) is the only required part.</p>}
