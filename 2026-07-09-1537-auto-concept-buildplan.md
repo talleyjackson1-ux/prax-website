@@ -101,3 +101,13 @@ Booksy-style but OWN software: dad publishes availability windows; clients pick 
 against his real schedule (no back-and-forth); optional no-show fee + small reschedule fee (needs
 card-on-file → Stripe). Build trigger per the crew-app rule: pilot on dad's site first as the
 booking widget v2, generalize if clients ask. Pairs with the growth stack (missed-call textback).
+
+## v4 QUEUED (Jackson 2026-07-09 eve — NOT built yet, next round)
+1. Gun should FACE THE CAR more (angled toward the panel, not pure profile — re-render with slight
+   yaw toward camera-left / rotation in page).
+2. The black mist must read as SPRAYED FROM THE GUN — a cone/jet anchored at the nozzle feeding the
+   cloud, not a free-floating band. (Anchor a spray-cone sprite at nozzle px, cloud drifts left
+   from it; possibly render a faint conical jet in Blender w/ alpha.)
+3. Air hose must NOT fade out with the gun — it currently reads like the hose is pulling the hero
+   card into frame. Let the hose ride off with the gun exit instead of fading, or persist longer.
+4. Hose connect point: glue to the actual air inlet at the handle bottom (currently reads mid-grip).
