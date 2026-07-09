@@ -205,7 +205,22 @@ body::after {
 }
 .tc-quote input:focus, .tc-quote select:focus { border-color: var(--t-accent); }
 .tc-quote select { appearance: none; }
-.tc-quote button { grid-column: 1 / -1; }
+.tc-quote > button { grid-column: 1 / -1; }
+
+/* preferred-day picker — scheduling without a synced calendar */
+.tc-days { grid-column: 1 / -1; }
+.tc-days-label { font-size: 0.85rem; font-weight: 600; color: var(--t-dim); margin-bottom: 10px; }
+.tc-days-label small { font-weight: 400; }
+.tc-days-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.tc-days-row button {
+  background: var(--t-raise); border: 1px solid var(--t-line); border-radius: 8px;
+  color: var(--t-dim); padding: 8px 13px; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem; cursor: pointer; transition: all 0.15s;
+}
+.tc-days-row button.on {
+  border-color: var(--t-accent); color: #fff;
+  background: color-mix(in srgb, var(--t-accent) 22%, transparent);
+}
 .tc-quote-note { margin-top: 16px; color: var(--t-dim); font-size: 0.9rem; }
 .tc-quote-note a { color: var(--t-accent-hi); font-weight: 700; text-decoration: none; }
 

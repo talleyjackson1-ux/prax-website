@@ -17,6 +17,49 @@ type Data = Record<string, string>
 
 const empty: Data = {}
 
+/* Chip group with a WRITE-YOUR-OWN slot — presets that don't resonate push
+   people away; letting them add their own take keeps them engaged and gives
+   better context than any preset could. Custom entries become removable chips. */
+function Chips({ field, options, data, setData }: {
+  field: string
+  options: string[]
+  data: Data
+  setData: React.Dispatch<React.SetStateAction<Data>>
+}) {
+  const [draft, setDraft] = useState('')
+  const values = (data[field] ?? '').split('|').filter(Boolean)
+  const customs = values.filter((v) => !options.includes(v))
+  const flip = (v: string) => setData((d) => {
+    const cur = (d[field] ?? '').split('|').filter(Boolean)
+    const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]
+    return { ...d, [field]: next.join('|') }
+  })
+  const add = () => {
+    const v = draft.trim().replace(/\|/g, '/')
+    if (v && !values.includes(v)) flip(v)
+    setDraft('')
+  }
+  return (
+    <div className="sf-chips">
+      {options.map((o) => (
+        <button key={o} type="button" className={values.includes(o) ? 'on' : ''} onClick={() => flip(o)}>{o}</button>
+      ))}
+      {customs.map((c) => (
+        <button key={c} type="button" className="on sf-chip-custom" onClick={() => flip(c)} title="tap to remove">{c} ✕</button>
+      ))}
+      <span className="sf-addchip">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
+          placeholder="or write your own…"
+        />
+        <button type="button" onClick={add} aria-label="add">+</button>
+      </span>
+    </div>
+  )
+}
+
 export default function StartForm() {
   const [step, setStep] = useState(0)
   const [data, setData] = useState<Data>(() => {
@@ -31,13 +74,6 @@ export default function StartForm() {
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setData((d) => ({ ...d, [k]: e.target.value }))
-  const toggle = (k: string, v: string) => () =>
-    setData((d) => {
-      const cur = (d[k] ?? '').split('|').filter(Boolean)
-      const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]
-      return { ...d, [k]: next.join('|') }
-    })
-  const has = (k: string, v: string) => (data[k] ?? '').split('|').includes(v)
 
   const step1Valid = useMemo(
     () => !!(data.business && data.trade && data.phone && data.city),
@@ -118,18 +154,10 @@ export default function StartForm() {
       {step === 1 && (
         <div className="sf-step">
           <h2>YOUR BUSINESS <em>— all optional, all useful</em></h2>
-          <div className="sf-label">Top services (pick up to 4)</div>
-          <div className="sf-chips">
-            {SERVICES_BY_DEFAULT.map((s) => (
-              <button key={s} className={has('services', s) ? 'on' : ''} onClick={toggle('services', s)}>{s}</button>
-            ))}
-          </div>
-          <div className="sf-label">What makes you different?</div>
-          <div className="sf-chips">
-            {DIFFERENT.map((s) => (
-              <button key={s} className={has('different', s) ? 'on' : ''} onClick={toggle('different', s)}>{s}</button>
-            ))}
-          </div>
+          <div className="sf-label">Top services (pick up to 4 — or add your own)</div>
+          <Chips field="services" options={SERVICES_BY_DEFAULT} data={data} setData={setData} />
+          <div className="sf-label">What makes you different? (your words beat my presets)</div>
+          <Chips field="different" options={DIFFERENT} data={data} setData={setData} />
           <div className="sf-grid">
             <label>Your most profitable kind of job<input value={data.bestJob ?? ''} onChange={set('bestJob')} placeholder="Full system replacements" /></label>
             <label>Years in business<input value={data.years ?? ''} onChange={set('years')} placeholder="12" /></label>
@@ -173,23 +201,11 @@ export default function StartForm() {
         <div className="sf-step">
           <h2>GOALS &amp; TASTE <em>— last one</em></h2>
           <div className="sf-label">#1 goal for the site</div>
-          <div className="sf-chips">
-            {GOALS.map((g) => (
-              <button key={g} className={has('goal', g) ? 'on' : ''} onClick={toggle('goal', g)}>{g}</button>
-            ))}
-          </div>
+          <Chips field="goal" options={GOALS} data={data} setData={setData} />
           <div className="sf-label">Style that fits you</div>
-          <div className="sf-chips">
-            {STYLES.map((s) => (
-              <button key={s} className={has('style', s) ? 'on' : ''} onClick={toggle('style', s)}>{s}</button>
-            ))}
-          </div>
+          <Chips field="style" options={STYLES} data={data} setData={setData} />
           <div className="sf-label">Want any of these?</div>
-          <div className="sf-chips">
-            {['Online booking', 'Financing section', '24/7 emergency banner'].map((s) => (
-              <button key={s} className={has('extras', s) ? 'on' : ''} onClick={toggle('extras', s)}>{s}</button>
-            ))}
-          </div>
+          <Chips field="extras" options={['Online booking', 'Financing section', '24/7 emergency banner']} data={data} setData={setData} />
           <div className="sf-grid">
             <label>A site you like (or hate)<input value={data.reference ?? ''} onChange={set('reference')} placeholder="competitor.com — hate it" /></label>
           </div>

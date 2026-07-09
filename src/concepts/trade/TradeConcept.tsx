@@ -8,7 +8,7 @@
    4. Vertical flow: sections whose photos MOVE IN AND OUT of the screen as
       you scroll (scrubbed x-transit), emergency band, trust, reviews, quote
       form — content grounded in the trade-site research + LeadForge audits. */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
@@ -16,7 +16,25 @@ import type { TradeConfig } from './tradeConfig'
 
 gsap.registerPlugin(ScrollTrigger)
 
+/* Next ~2 weeks as pickable day chips (Sundays skipped). ZERO-maintenance
+   scheduling middle ground: no synced calendar for the owner to neglect —
+   the customer just arrives at the call with a date already in mind. */
+function upcomingDays(count = 10): string[] {
+  const out: string[] = []
+  const d = new Date()
+  while (out.length < count) {
+    d.setDate(d.getDate() + 1)
+    if (d.getDay() === 0) continue
+    out.push(d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))
+  }
+  return out
+}
+
 export default function TradeConcept({ cfg }: { cfg: TradeConfig }) {
+  const [days] = useState(() => upcomingDays())
+  const [pickedDays, setPickedDays] = useState<string[]>([])
+  const pickDay = (d: string) =>
+    setPickedDays((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].slice(-2)))
   const stageRef = useRef<HTMLDivElement>(null)
   const blockRef = useRef<HTMLDivElement>(null)
   const heroLogoRef = useRef<HTMLDivElement>(null)
@@ -234,7 +252,17 @@ export default function TradeConcept({ cfg }: { cfg: TradeConfig }) {
             {cfg.quoteServices.map((s) => <option key={s}>{s}</option>)}
           </select>
           <input placeholder="ZIP code" />
-          <button className="tc-btn tc-btn-solid" type="submit">Request My Quote</button>
+          <div className="tc-days">
+            <div className="tc-days-label">Preferred day <small>(optional — pick up to two, we confirm on the call)</small></div>
+            <div className="tc-days-row">
+              {days.map((d) => (
+                <button type="button" key={d} className={pickedDays.includes(d) ? 'on' : ''} onClick={() => pickDay(d)}>{d}</button>
+              ))}
+            </div>
+          </div>
+          <button className="tc-btn tc-btn-solid" type="submit">
+            Request My Quote{pickedDays.length ? ` — ${pickedDays.join(' or ')}` : ''}
+          </button>
         </form>
         <p className="tc-quote-note">Or skip the form: <a href={tel}>{cfg.phone}</a> — a human answers.</p>
       </section>
