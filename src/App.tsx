@@ -1,11 +1,12 @@
 /* prax.design — Jackson Talley's freelance site.
    Deliberately minimal: the form, the examples, the pricing. Nothing else.
    (PRAX/REX live on their own site — this one is purely for clients.) */
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
 import WaterField from './fx/WaterField'
+import { slugForCode } from './lib/mockCode'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -22,6 +23,54 @@ function LogoMark({ size = 22 }: { size?: number }) {
       <circle cx="32" cy="32" r="15" fill="url(#lg)" />
       <circle cx="32" cy="32" r="26" fill="none" stroke="#3b73f7" strokeOpacity="0.55" strokeWidth="2.5" strokeDasharray="5 8" />
     </svg>
+  )
+}
+
+/* The client door — enter the code from your mock email, land on your mock.
+   Same RPC as the /mocks gate page; wrong codes get an inline error. */
+function CodeModal({ onClose }: { onClose: () => void }) {
+  const [code, setCode] = useState('')
+  const [state, setState] = useState<'idle' | 'checking' | 'bad'>('idle')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const go = async () => {
+    const v = code.trim().toUpperCase()
+    if (!v || state === 'checking') return
+    setState('checking')
+    const slug = await slugForCode(v)
+    if (slug) { window.location.href = `/mock/${slug}/` }
+    else setState('bad')
+  }
+
+  return (
+    <div className="code-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Enter your mock code">
+      <div className="code-modal glass" onClick={(e) => e.stopPropagation()}>
+        <button className="code-close" onClick={onClose} aria-label="Close">×</button>
+        <div className="mono">CLIENT ACCESS</div>
+        <h3>Enter the code from your email.</h3>
+        <p>Every mock is private — your code opens yours and only yours.</p>
+        <input
+          ref={inputRef}
+          value={code}
+          onChange={(e) => { setCode(e.target.value.toUpperCase()); setState('idle') }}
+          onKeyDown={(e) => e.key === 'Enter' && void go()}
+          placeholder="E.G. 7KFQ2M"
+          maxLength={10}
+          className={state === 'bad' ? 'bad' : ''}
+        />
+        {state === 'bad' && <div className="code-err">That code didn't match — double-check the email, or reply to it and ask.</div>}
+        <button className="btn btn-primary code-go" disabled={state === 'checking' || !code.trim()} onClick={() => void go()}>
+          {state === 'checking' ? 'Checking…' : 'View my mock →'}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -67,6 +116,8 @@ const TIERS = [
 ]
 
 export default function App() {
+  const [codeOpen, setCodeOpen] = useState(false)
+
   useEffect(() => {
     const lenis = new Lenis({ duration: 1.15 })
     lenis.on('scroll', ScrollTrigger.update)
@@ -132,14 +183,21 @@ export default function App() {
             roofing, gyms — at indie prices. Tell me about your business in <b>3 minutes</b> and I'll
             send you a <b>free mock of your homepage</b> in 48 hours.
           </p>
-          <a className="cta-panel glass" href="/start/">
-            <div>
-              <div className="mono">THE 3-MINUTE FORM</div>
-              <b>Get your free homepage mock →</b>
-              <span>Only the first step is required. No calls, no pressure — you see the work, then decide.</span>
-            </div>
-            <div className="cta-badge">$0</div>
-          </a>
+          <div className="cta-pair">
+            <a className="cta-panel glass" href="/start/">
+              <div>
+                <div className="mono">THE 3-MINUTE FORM</div>
+                <b>Get your free homepage mock →</b>
+                <span>Only the first step is required. No calls, no pressure — you see the work, then decide.</span>
+              </div>
+              <div className="cta-badge">$0</div>
+            </a>
+            <button className="cta-code glass" onClick={() => setCodeOpen(true)}>
+              <span className="mono">CLIENT ACCESS</span>
+              <b>Have a code for your mock-up?</b>
+              <span>Click here to view it.</span>
+            </button>
+          </div>
           <div className="hero-ctas">
             <a className="btn btn-ghost" href="#work">Or tour the work first ↓</a>
           </div>
@@ -215,6 +273,8 @@ export default function App() {
           <span className="mono">JACKSON TALLEY · JCT DEVELOPMENTS LLC · KANSAS CITY · PRAX.DESIGN</span>
         </div>
       </footer>
+
+      {codeOpen && <CodeModal onClose={() => setCodeOpen(false)} />}
     </>
   )
 }

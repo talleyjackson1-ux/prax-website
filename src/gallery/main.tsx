@@ -5,21 +5,7 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import '../start/start.css'
-
-const SUPA_URL = 'https://goaquyufqhuedrrvrzom.supabase.co'
-const SUPA_KEY = 'sb_publishable_1TMdi3h3h4nJDETq950fkg_uMObwlI_'
-
-async function slugForCode(code: string): Promise<string | null> {
-  try {
-    const r = await fetch(`${SUPA_URL}/rest/v1/rpc/mock_slug_for_code`, {
-      method: 'POST',
-      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_code: code }),
-    })
-    const v = await r.json() as string | null
-    return typeof v === 'string' && v ? v : null
-  } catch { return null }
-}
+import { slugForCode } from '../lib/mockCode'
 
 function MockGate() {
   const [code, setCode] = useState(() => sessionStorage.getItem('prax_mock_code') ?? '')
