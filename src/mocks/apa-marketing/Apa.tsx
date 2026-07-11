@@ -1,10 +1,10 @@
-/* THE ALIGNED LINE — performance marketing site preview.
+/* THE ALIGNED LINE — APA Digital Marketing Group site preview.
    Section order per the intake plan: hero (value prop + phone + estimate CTA) →
    what we do (4 services, no prices) → the performance promise (commission
    model vs traditional agency, 24/7) → results gallery (labeled slots for REAL
    before/afters — nothing invented) → how it works (estimate → launch → grow) →
    book a consultation (real calendar embeds here) → contact/footer.
-   Motion: Lenis + GSAP reveals, hero chart draws itself once on load. */
+   Motion: Lenis + GSAP reveals; hero chart loops grow→hold→fade (~6.5s). */
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -15,51 +15,70 @@ gsap.registerPlugin(ScrollTrigger)
 const PHONE = '816-844-5548'
 const TEL = 'tel:8168445548'
 
+function Brand({ className = '' }: { className?: string }) {
+  return (
+    <a className={`ap-brand ${className}`} href="#top">
+      <img src="/img/apa/apa-mark.png" alt="APA triangle mark" />
+      <span className="ap-brand-text">
+        <b>APA</b>
+        <em>DIGITAL MARKETING GROUP</em>
+      </span>
+    </a>
+  )
+}
+
 /* Two lines rising together — the commission model, drawn. Unlabeled axes on
-   purpose: shape only, no fabricated numbers. */
+   purpose: shape only, no fabricated numbers. Loops: draw ~3.4s → hold → fade. */
 function AlignedChart() {
   const revRef = useRef<SVGPathElement>(null)
   const feeRef = useRef<SVGPathElement>(null)
-  const wrapRef = useRef<SVGSVGElement>(null)
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const rev = revRef.current!, fee = feeRef.current!
-    const tl = gsap.timeline({ delay: 0.35 })
-    for (const [p, at] of [[rev, 0], [fee, 0.25]] as const) {
-      const len = p.getTotalLength()
-      gsap.set(p, { strokeDasharray: len, strokeDashoffset: len })
-      tl.to(p, { strokeDashoffset: 0, duration: 1.6, ease: 'power2.inOut' }, at)
-    }
-    tl.fromTo('.ap-chart-label, .ap-chart-dot, .ap-chart-fill',
-      { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.7, stagger: 0.08 }, 1.15)
+    const revLen = rev.getTotalLength(), feeLen = fee.getTotalLength()
+    gsap.set(rev, { strokeDasharray: revLen })
+    gsap.set(fee, { strokeDasharray: feeLen })
+    gsap.set('.ap-chart-label, .ap-chart-dot, .ap-chart-fill', { autoAlpha: 0 })
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.5, delay: 0.4 })
+    tl.set([rev, fee], { autoAlpha: 1 }, 0)
+    tl.fromTo(rev, { strokeDashoffset: revLen }, { strokeDashoffset: 0, duration: 3.4, ease: 'power1.inOut' }, 0)
+    tl.fromTo(fee, { strokeDashoffset: feeLen }, { strokeDashoffset: 0, duration: 3.4, ease: 'power1.inOut' }, 0.35)
+    tl.fromTo('.ap-chart-fill', { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.4, ease: 'none' }, 1.3)
+    tl.fromTo('.ap-chart-label, .ap-chart-dot', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, stagger: 0.1 }, 3.0)
+    tl.to({}, { duration: 1.7 })                                   // hold at full
+    tl.to([rev, fee, '.ap-chart-fill', '.ap-chart-label', '.ap-chart-dot'], { autoAlpha: 0, duration: 0.7 })
     return () => { tl.kill() }
   }, [])
 
   return (
-    <svg ref={wrapRef} className="ap-chart" viewBox="0 0 640 330" fill="none" aria-label="Two lines rising together — your growth and our fee move as one">
+    <svg className="ap-chart" viewBox="0 0 640 330" fill="none" aria-label="Two lines rising together — your growth and our fee move as one">
       <defs>
         <linearGradient id="ap-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#12233c" stopOpacity="0.10" />
-          <stop offset="100%" stopColor="#12233c" stopOpacity="0" />
+          <stop offset="0%" stopColor="#2177b5" stopOpacity="0.22" />
+          <stop offset="100%" stopColor="#2177b5" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="ap-rev" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#3f8fd0" />
+          <stop offset="100%" stopColor="#d0ecfd" />
         </linearGradient>
       </defs>
       {[70, 140, 210, 280].map((y) => (
-        <line key={y} x1="20" y1={y} x2="622" y2={y} stroke="#101d31" strokeOpacity="0.06" />
+        <line key={y} x1="20" y1={y} x2="622" y2={y} stroke="#d0ecfd" strokeOpacity="0.07" />
       ))}
       <path className="ap-chart-fill"
         d="M 20 282 C 110 276, 170 252, 250 226 C 330 200, 380 168, 450 128 C 505 97, 560 66, 622 44 L 622 330 L 20 330 Z"
         fill="url(#ap-fill)" />
       <path ref={revRef} className="ap-chart-rev"
         d="M 20 282 C 110 276, 170 252, 250 226 C 330 200, 380 168, 450 128 C 505 97, 560 66, 622 44"
-        stroke="#12233c" strokeWidth="3.5" strokeLinecap="round" />
+        stroke="url(#ap-rev)" strokeWidth="3.5" strokeLinecap="round" />
       <path ref={feeRef} className="ap-chart-fee"
         d="M 20 296 C 110 293, 180 282, 260 268 C 340 254, 400 238, 470 216 C 520 200, 570 184, 622 166"
-        stroke="#b3892f" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="1 0" />
-      <circle className="ap-chart-dot" cx="622" cy="44" r="5" fill="#12233c" />
-      <circle className="ap-chart-dot" cx="622" cy="166" r="4.5" fill="#b3892f" />
-      <text className="ap-chart-label" x="612" y="26" textAnchor="end" fill="#12233c">your growth</text>
-      <text className="ap-chart-label ap-chart-label-fee" x="368" y="278" textAnchor="start" fill="#b3892f">our fee — a share of it</text>
+        stroke="#2f7fc0" strokeWidth="2.5" strokeLinecap="round" />
+      <circle className="ap-chart-dot" cx="622" cy="44" r="5" fill="#d0ecfd" />
+      <circle className="ap-chart-dot" cx="622" cy="166" r="4.5" fill="#2f7fc0" />
+      <text className="ap-chart-label" x="612" y="26" textAnchor="end" fill="#d0ecfd">your growth</text>
+      <text className="ap-chart-label ap-chart-label-fee" x="368" y="278" textAnchor="start" fill="#5fa3d9">our fee — a share of it</text>
     </svg>
   )
 }
@@ -112,8 +131,7 @@ export default function Apa() {
     <div className="ap">
       {/* ── nav ── */}
       <header className="ap-nav">
-        {/* PLACEHOLDER wordmark — swaps for Alex's real logo when it lands */}
-        <a className="ap-brand" href="#top">APA<span>·</span><em>PERFORMANCE MARKETING</em></a>
+        <Brand />
         <nav className="ap-links">
           <a href="#services">Services</a>
           <a href="#promise">The Promise</a>
@@ -275,7 +293,7 @@ export default function Apa() {
       {/* ── 7 · contact / footer ── */}
       <footer className="ap-foot">
         <div className="ap-foot-main">
-          <div className="ap-brand ap-brand-foot">APA<span>·</span><em>PERFORMANCE MARKETING</em></div>
+          <Brand className="ap-brand-foot" />
           <a className="ap-foot-phone" href={TEL}>{PHONE}</a>
           <p>Serving Lee's Summit and the Kansas City metro.</p>
           <div className="ap-chips">
@@ -283,7 +301,7 @@ export default function Apa() {
           </div>
         </div>
         <div className="ap-foot-meta">
-          <span>website preview — logo, email &amp; service area confirmed by client</span>
+          <span>website preview — email &amp; service area confirmed by client</span>
           <span>prepared by prax.design</span>
         </div>
       </footer>
