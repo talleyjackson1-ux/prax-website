@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:apa": "vite --config vite.apa.config.ts",
+    "build:apa": "node -e \"require('fs').rmSync('../apa-website/assets',{recursive:true,force:true})\" && vite build --config vite.apa.config.ts && node apa-site/sync-mock.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
