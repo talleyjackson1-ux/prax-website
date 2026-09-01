@@ -68,6 +68,15 @@
 <script>
 const SUPA = 'https://ayedhlaggnkvjyqnyzps.supabase.co';
 const KEY  = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';
+
+// Code can ride in the URL (?k=...) so install + first open need zero typing.
+// iOS gives the installed app separate storage from Safari, so the manifest's
+// start_url carries the code too — every fresh context self-arms.
+const urlCode = new URLSearchParams(location.search).get('k');
+if (urlCode) {
+  localStorage.setItem('prax_drop_code', urlCode.trim());
+  history.replaceState(null, '', location.pathname);
+}
 const gate = document.getElementById('gate'), main = document.getElementById('main');
 const codeInput = document.getElementById('code'), list = document.getElementById('list');
 

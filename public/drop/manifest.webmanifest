@@ -1,7 +1,7 @@
 {
   "name": "PRAX Drop",
   "short_name": "Drop",
-  "start_url": "/drop/",
+  "start_url": "/drop/?k=4tzy76hxb5mkuq2op0",
   "scope": "/drop/",
   "display": "standalone",
   "background_color": "#0b0e13",
