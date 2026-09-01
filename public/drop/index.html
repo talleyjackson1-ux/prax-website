@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PRAX Drop</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0e13">
+<style>
+  :root{
+    --ground:#0b0e13; --surface:#131824; --line:#232b3a;
+    --ink:#e8ecf2; --muted:#8b95a5; --accent:#3d9eff; --good:#46c98d; --bad:#d05a5a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font:16px/1.5 -apple-system,"Segoe UI",system-ui,sans-serif;
+    min-height:100dvh;display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 18px)}
+  header{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+  h1{font-size:22px;font-weight:650;margin:0}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+  .gate,.main{display:none}
+  .show{display:block}
+  input[type=text]{width:100%;background:var(--surface);border:1px solid var(--line);
+    border-radius:12px;color:var(--ink);font-size:17px;padding:14px 16px;outline:none}
+  input[type=text]:focus{border-color:var(--accent)}
+  button{width:100%;border:none;border-radius:12px;font-size:17px;font-weight:600;
+    padding:15px 16px;margin-top:12px;color:#fff;background:var(--accent);cursor:pointer}
+  button:active{opacity:.85}
+  .dropzone{border:1.5px dashed var(--line);border-radius:16px;background:var(--surface);
+    padding:44px 20px;text-align:center;color:var(--muted);font-size:15px;margin-bottom:14px}
+  .dropzone b{color:var(--ink);font-weight:600;display:block;font-size:17px;margin-bottom:4px}
+  .item{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;margin-bottom:10px;font-size:14px}
+  .item .name{color:var(--ink);word-break:break-all}
+  .item .state{font-size:12.5px;margin-top:4px;color:var(--muted)}
+  .item .state.ok{color:var(--good)} .item .state.err{color:var(--bad)}
+  .bar{height:4px;background:var(--line);border-radius:2px;margin-top:8px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  .foot{margin-top:auto;padding-top:18px;color:#5c6575;font-size:12px;text-align:center}
+  .relink{color:var(--muted);font-size:13px;text-align:center;margin-top:16px;
+    text-decoration:underline;background:none;border:none;padding:6px;width:auto;
+    display:block;margin-left:auto;margin-right:auto}
+</style>
+</head>
+<body>
+<header><h1>PRAX Drop</h1></header>
+
+<section class="gate" id="gate">
+  <p class="sub">Enter the drop code once — it stays on this phone.</p>
+  <input type="text" id="code" placeholder="drop code" autocapitalize="none" autocomplete="off" spellcheck="false">
+  <button id="saveCode">Save code</button>
+</section>
+
+<section class="main" id="main">
+  <p class="sub">Photos and videos land straight in the refs pipeline. Files over 50&nbsp;MB won't go through.</p>
+  <div class="dropzone" id="zone"><b>Tap to pick photos or videos</b>from your camera roll</div>
+  <input type="file" id="picker" accept="image/*,video/*" multiple hidden>
+  <div id="list"></div>
+  <button class="relink" id="reset">change drop code</button>
+</section>
+
+<p class="foot">prax drop · uploads are private · nothing here is public</p>
+
+<script>
+const SUPA = 'https://ayedhlaggnkvjyqnyzps.supabase.co';
+const KEY  = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';
+const gate = document.getElementById('gate'), main = document.getElementById('main');
+const codeInput = document.getElementById('code'), list = document.getElementById('list');
+
+function code(){ return localStorage.getItem('prax_drop_code') || '' }
+function view(){ const has = !!code(); gate.classList.toggle('show', !has); main.classList.toggle('show', has) }
+document.getElementById('saveCode').onclick = () => {
+  const v = codeInput.value.trim(); if (!v) return;
+  localStorage.setItem('prax_drop_code', v); view();
+};
+document.getElementById('reset').onclick = () => { localStorage.removeItem('prax_drop_code'); view() };
+
+const zone = document.getElementById('zone'), picker = document.getElementById('picker');
+zone.onclick = () => picker.click();
+picker.onchange = () => { [...picker.files].forEach(upload); picker.value = '' };
+
+function upload(file){
+  const row = document.createElement('div'); row.className = 'item';
+  row.innerHTML = '<div class="name"></div><div class="bar"><i></i></div><div class="state">uploading…</div>';
+  row.querySelector('.name').textContent = file.name;
+  list.prepend(row);
+  const barFill = row.querySelector('.bar i'), state = row.querySelector('.state');
+
+  const d = new Date(), day = d.toISOString().slice(0,10);
+  const safe = file.name.replace(/[^\w.\-]+/g, '_');
+  const path = `${code()}/${day}/${Date.now()}-${safe}`;
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', `${SUPA}/storage/v1/object/phone-drop/${path}`);
+  xhr.setRequestHeader('apikey', KEY);
+  xhr.setRequestHeader('Authorization', 'Bearer ' + KEY);
+  xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+  xhr.upload.onprogress = e => { if (e.lengthComputable) barFill.style.width = (e.loaded/e.total*100).toFixed(0) + '%' };
+  xhr.onload = () => {
+    if (xhr.status >= 200 && xhr.status < 300) { state.textContent = 'landed'; state.className = 'state ok'; barFill.style.width = '100%' }
+    else if (xhr.status === 403 || xhr.status === 400) { state.textContent = 'rejected — check the drop code'; state.className = 'state err' }
+    else if (xhr.status === 413) { state.textContent = 'too big — over the 50 MB limit'; state.className = 'state err' }
+    else { state.textContent = 'failed (' + xhr.status + ') — try again'; state.className = 'state err' }
+  };
+  xhr.onerror = () => { state.textContent = 'network error — try again'; state.className = 'state err' };
+  xhr.send(file);
+}
+
+view();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>
