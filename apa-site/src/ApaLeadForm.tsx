@@ -33,6 +33,7 @@ type Data = Record<string, string>
 export default function ApaLeadForm() {
   const [data, setData] = useState<Data>({})
   const [needs, setNeeds] = useState<string[]>([])
+  const [hp, setHp] = useState('') // honeypot — bots fill it, humans never see it
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -52,6 +53,9 @@ export default function ApaLeadForm() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!valid) return
+    // Honeypot: a bot filled the hidden field. Show success but drop it silently
+    // (never posts, never reaches the APA inbox).
+    if (hp) { setSent(true); return }
     setSending(true)
     setFailed(false)
     const row = {
@@ -116,6 +120,17 @@ export default function ApaLeadForm() {
 
   return (
     <form className="ap-form" onSubmit={submit}>
+      {/* honeypot — off-screen, hidden from humans + screen readers; bots fill it */}
+      <input
+        type="text"
+        name="company_website"
+        tabIndex={-1}
+        autoComplete="off"
+        value={hp}
+        onChange={(e) => setHp(e.target.value)}
+        aria-hidden="true"
+        style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+      />
       <div className="apf-head">
         <h3>Request a free estimate</h3>
         <p>No packages, no pressure — a real answer on what we’d do and what it costs.</p>

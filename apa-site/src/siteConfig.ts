@@ -3,7 +3,7 @@
  * The site is public (apadigitalmarketing.com); these values are safe to ship.
  */
 export const PHONE = ''; // no public phone yet — email is the contact channel
-export const EMAIL = 'ParkerK@apadigitalmarketing.com';
+export const EMAIL = 'contact@apadigitalmarketing.com';
 export const MAILTO_HREF = `mailto:${EMAIL}`;
 export const INSTAGRAM = 'https://www.instagram.com/apadigitalmarketinggroup/';
 

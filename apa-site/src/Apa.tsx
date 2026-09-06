@@ -202,9 +202,9 @@ export default function Apa() {
           <div className="ap-kicker">NATIONWIDE · FOUNDED IN LEE'S SUMMIT, MO</div>
           <h1>
             <span className="ap-w">We</span> <span className="ap-w">only</span>{' '}
-            <span className="ap-w">get</span> <span className="ap-w">paid</span><br />
-            <span className="ap-w">when</span> <span className="ap-w"><i>you</i></span>{' '}
-            <span className="ap-w">do.</span>
+            <span className="ap-w">win</span> <span className="ap-w">when</span><br />
+            <span className="ap-w">our</span> <span className="ap-w"><i>clients</i></span>{' '}
+            <span className="ap-w">win.</span>
           </h1>
           <p className="ap-lede">
             Lead generation, customer acquisition, and sales growth for small businesses —
