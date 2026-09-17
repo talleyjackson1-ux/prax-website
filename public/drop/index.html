@@ -38,8 +38,13 @@
   .item .name{color:var(--ink);word-break:break-all}
   .item .state{font-size:12.5px;margin-top:4px;color:var(--muted)}
   .item .state.ok{color:var(--good)} .item .state.err{color:var(--bad)}
+  .item .retry{width:auto;margin:8px 0 0;padding:7px 14px;font-size:13px;
+    background:transparent;border:1px solid var(--line);color:var(--ink)}
   .bar{height:4px;background:var(--line);border-radius:2px;margin-top:8px;overflow:hidden}
   .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  .note{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:10px 14px;margin-bottom:14px;color:var(--muted);font-size:12.5px;display:none}
+  .note.show{display:block}
   .foot{margin-top:auto;padding-top:18px;color:#5c6575;font-size:12px;text-align:center}
   .relink{color:var(--muted);font-size:13px;text-align:center;margin-top:16px;
     text-decoration:underline;background:none;border:none;padding:6px;width:auto;
@@ -50,28 +55,34 @@
 <header><h1>PRAX Drop</h1></header>
 
 <section class="gate" id="gate">
-  <p class="sub">Enter the drop code once — it stays on this phone.</p>
+  <p class="sub">Enter the drop code once &mdash; it stays on this phone.</p>
   <input type="text" id="code" placeholder="drop code" autocapitalize="none" autocomplete="off" spellcheck="false">
   <button id="saveCode">Save code</button>
 </section>
 
 <section class="main" id="main">
-  <p class="sub">Photos and videos land straight in the refs pipeline. Files over 50&nbsp;MB won't go through.</p>
+  <p class="sub">Photos and videos land straight in the refs pipeline. Any size &mdash; big videos go up in pieces and are put back together on the PC.</p>
+  <div class="note" id="keepAwake">Big video going up. Keep this screen on until it says <b>landed</b> &mdash; iOS stops the upload if you switch apps.</div>
   <div class="dropzone" id="zone"><b>Tap to pick photos or videos</b>from your camera roll</div>
   <input type="file" id="picker" accept="image/*,video/*" multiple hidden>
   <div id="list"></div>
   <button class="relink" id="reset">change drop code</button>
 </section>
 
-<p class="foot">prax drop · uploads are private · nothing here is public</p>
+<p class="foot">prax drop &middot; uploads are private &middot; nothing here is public</p>
 
 <script>
 const SUPA = 'https://ayedhlaggnkvjyqnyzps.supabase.co';
 const KEY  = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';
 
-// Code can ride in the URL (?k=...) so install + first open need zero typing.
-// iOS gives the installed app separate storage from Safari, so the manifest's
-// start_url carries the code too — every fresh context self-arms.
+// The platform rejects any single object over 50 MB (free plan, hard cap — measured,
+// not guessed: a 60 MB PUT comes back 400 EntityTooLarge even with the bucket limit at 5 GB).
+// Phone video is 60-130 MB, so every video Jackson ever picked was refused, and the old
+// page mislabelled that 400 as "check the drop code". So: split at 40 MB and let the
+// puller on the PC concatenate the parts back into one file.
+const CHUNK = 40 * 1024 * 1024;
+const TRIES = 4;                // per part — phone networks drop, this is not optional
+
 const urlCode = new URLSearchParams(location.search).get('k');
 if (urlCode) {
   localStorage.setItem('prax_drop_code', urlCode.trim());
@@ -79,6 +90,7 @@ if (urlCode) {
 }
 const gate = document.getElementById('gate'), main = document.getElementById('main');
 const codeInput = document.getElementById('code'), list = document.getElementById('list');
+const keepAwake = document.getElementById('keepAwake');
 
 function code(){ return localStorage.getItem('prax_drop_code') || '' }
 function view(){ const has = !!code(); gate.classList.toggle('show', !has); main.classList.toggle('show', has) }
@@ -90,33 +102,118 @@ document.getElementById('reset').onclick = () => { localStorage.removeItem('prax
 
 const zone = document.getElementById('zone'), picker = document.getElementById('picker');
 zone.onclick = () => picker.click();
-picker.onchange = () => { [...picker.files].forEach(upload); picker.value = '' };
+picker.onchange = () => { const files = [...picker.files]; picker.value = ''; runQueue(files) };
 
-function upload(file){
+// One file at a time. Two 100 MB videos racing on one phone uplink is how you get
+// two half-uploads instead of one finished one.
+let queue = Promise.resolve();
+function runQueue(files){ files.forEach(f => { queue = queue.then(() => upload(f)) }) }
+
+// Screen Wake Lock (iOS 16.4+) — an upload that takes two minutes outlives the auto-lock.
+let wake = null, wakeCount = 0;
+async function holdWake(){
+  wakeCount++; keepAwake.classList.add('show');
+  try { if (!wake && navigator.wakeLock) wake = await navigator.wakeLock.request('screen') } catch {}
+}
+function releaseWake(){
+  if (--wakeCount > 0) return;
+  keepAwake.classList.remove('show');
+  try { wake && wake.release() } catch {} finally { wake = null }
+}
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && wakeCount > 0 && !wake) {
+    try { wake = await navigator.wakeLock.request('screen') } catch {}
+  }
+});
+
+function put(path, blob, type, onProgress){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${SUPA}/storage/v1/object/phone-drop/${path}`);
+    xhr.setRequestHeader('apikey', KEY);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + KEY);
+    xhr.setRequestHeader('Content-Type', type || 'application/octet-stream');
+    xhr.setRequestHeader('x-upsert', 'true');   // a retry must be able to overwrite its own stub
+    xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded) };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) return resolve();
+      let why = '';
+      try { why = (JSON.parse(xhr.responseText) || {}).message || '' } catch {}
+      const e = new Error(why || ('HTTP ' + xhr.status));
+      e.status = xhr.status; e.why = why;
+      reject(e);
+    };
+    xhr.onerror = () => reject(Object.assign(new Error('network'), { status: 0 }));
+    xhr.ontimeout = () => reject(Object.assign(new Error('timed out'), { status: 0 }));
+    xhr.send(blob);
+  });
+}
+
+// Say what actually went wrong. The old page called every 400 "check the drop code",
+// which is exactly why a size failure looked like a code failure for two weeks.
+function explain(err){
+  const why = (err.why || '').toLowerCase();
+  if (why.includes('exceeded the maximum allowed size')) return 'part refused as too big — tell Claude, the chunk size needs lowering';
+  if (err.status === 403 || why.includes('row-level security') || why.includes('unauthorized')) return 'rejected — check the drop code';
+  if (err.status === 0) return 'connection dropped — tap retry';
+  return (err.why || err.message) + ' — tap retry';
+}
+
+async function upload(file){
   const row = document.createElement('div'); row.className = 'item';
-  row.innerHTML = '<div class="name"></div><div class="bar"><i></i></div><div class="state">uploading…</div>';
+  row.innerHTML = '<div class="name"></div><div class="bar"><i></i></div><div class="state"></div>';
   row.querySelector('.name').textContent = file.name;
   list.prepend(row);
   const barFill = row.querySelector('.bar i'), state = row.querySelector('.state');
 
   const d = new Date(), day = d.toISOString().slice(0,10);
   const safe = file.name.replace(/[^\w.\-]+/g, '_');
-  const path = `${code()}/${day}/${Date.now()}-${safe}`;
+  const base = `${code()}/${day}/${Date.now()}-${safe}`;
+  const parts = Math.max(1, Math.ceil(file.size / CHUNK));
+  const pad = n => String(n).padStart(3, '0');
 
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', `${SUPA}/storage/v1/object/phone-drop/${path}`);
-  xhr.setRequestHeader('apikey', KEY);
-  xhr.setRequestHeader('Authorization', 'Bearer ' + KEY);
-  xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-  xhr.upload.onprogress = e => { if (e.lengthComputable) barFill.style.width = (e.loaded/e.total*100).toFixed(0) + '%' };
-  xhr.onload = () => {
-    if (xhr.status >= 200 && xhr.status < 300) { state.textContent = 'landed'; state.className = 'state ok'; barFill.style.width = '100%' }
-    else if (xhr.status === 403 || xhr.status === 400) { state.textContent = 'rejected — check the drop code'; state.className = 'state err' }
-    else if (xhr.status === 413) { state.textContent = 'too big — over the 50 MB limit'; state.className = 'state err' }
-    else { state.textContent = 'failed (' + xhr.status + ') — try again'; state.className = 'state err' }
-  };
-  xhr.onerror = () => { state.textContent = 'network error — try again'; state.className = 'state err' };
-  xhr.send(file);
+  const setBar = loaded => { barFill.style.width = (Math.min(1, loaded / file.size) * 100).toFixed(1) + '%' };
+
+  async function attempt(){
+    state.className = 'state'; state.textContent = parts > 1 ? `uploading — 0 of ${parts} pieces` : 'uploading…';
+    if (parts > 1) await holdWake();
+    try {
+      let done = 0;
+      for (let i = 0; i < parts; i++) {
+        const slice = file.slice(i * CHUNK, Math.min(file.size, (i + 1) * CHUNK));
+        // .praxpart001of004 — the puller globs on this and concatenates in index order.
+        const path = parts === 1 ? base : `${base}.praxpart${pad(i+1)}of${pad(parts)}`;
+        let lastErr = null;
+        for (let t = 1; t <= TRIES; t++) {
+          try { await put(path, slice, i === 0 ? file.type : 'application/octet-stream', l => setBar(done + l)); lastErr = null; break }
+          catch (e) {
+            lastErr = e;
+            if (e.status && e.status !== 0 && e.status !== 429 && e.status < 500) break;  // a real refusal, not a blip
+            state.textContent = `piece ${i+1} of ${parts} — retry ${t} of ${TRIES}`;
+            await new Promise(r => setTimeout(r, 900 * t));
+          }
+        }
+        if (lastErr) throw lastErr;
+        done += slice.size; setBar(done);
+        if (parts > 1) state.textContent = `uploading — ${i+1} of ${parts} pieces`;
+      }
+      barFill.style.width = '100%';
+      state.className = 'state ok';
+      state.textContent = parts > 1 ? `landed — ${parts} pieces, rejoined on the PC` : 'landed';
+    } catch (err) {
+      state.className = 'state err';
+      state.textContent = explain(err);
+      if (!row.querySelector('.retry')) {
+        const b = document.createElement('button');
+        b.className = 'retry'; b.textContent = 'retry';
+        b.onclick = () => { b.remove(); queue = queue.then(attempt) };
+        row.appendChild(b);
+      }
+    } finally {
+      if (parts > 1) releaseWake();
+    }
+  }
+  await attempt();
 }
 
 view();

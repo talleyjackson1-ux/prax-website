@@ -1,4 +1,4 @@
-const CACHE = 'prax-drop-v1';
+const CACHE = 'prax-drop-v2';
 const SHELL = ['./', './manifest.webmanifest'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
