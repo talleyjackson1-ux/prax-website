@@ -1,11 +1,10 @@
 {
-  "name": "PRAX Drop",
-  "short_name": "Drop",
-  "start_url": "/drop/?k=4tzy76hxb5mkuq2op0",
-  "scope": "/drop/",
+  "name": "TRMNL",
+  "short_name": "TRMNL",
+  "description": "TRMNL on your phone: send things both ways, projects, SoT, messages.",
   "display": "standalone",
-  "background_color": "#0b0e13",
-  "theme_color": "#0b0e13",
+  "background_color": "#1e2023",
+  "theme_color": "#1e2023",
   "icons": [
     { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }

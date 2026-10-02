@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>TRMNL</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TRMNL">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1e2023">
+<style>
+:root{
+  --bg:#1e2023; --surface:#2b2d31; --card:#26282c; --line:#3a3d42; --ink:#e4e6e9; --dim:#9aa0a8; --faint:#646a72;
+  --run:#7ee787; --wait:#e3b341; --done:#79c0ff; --err:#ff7b72; --claude:#e8a87c; --hook:#d2a8ff;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --top:env(safe-area-inset-top); --bot:env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,"SF Pro Text",system-ui,sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;height:100dvh}
+button,input,textarea,select{font:inherit;color:inherit}
+/* top bar */
+header{padding:calc(var(--top) + 10px) 16px 10px;display:flex;align-items:center;gap:10px;background:var(--bg);border-bottom:1px solid var(--line)}
+.logo{font:700 17px var(--mono);letter-spacing:.22em} .logo i{font-style:normal;color:var(--run)}
+header .st{margin-left:auto;font:12px var(--mono);color:var(--dim);display:flex;gap:10px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--faint)} .dot.on{background:var(--run);box-shadow:0 0 8px var(--run)}
+/* pages */
+main{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 24px}
+.page{display:none} .page.on{display:block}
+h2{font:600 13px var(--mono);letter-spacing:.14em;color:var(--faint);margin:18px 2px 8px} h2:first-child{margin-top:4px}
+/* bottom tabs */
+nav{display:flex;border-top:1px solid var(--line);background:#1a1c1f;padding-bottom:var(--bot)}
+nav button{flex:1;background:none;border:none;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--faint);font-size:10.5px;letter-spacing:.04em;position:relative}
+nav button .ic{font-size:20px;line-height:22px}
+nav button.on{color:var(--ink)} nav button.on .ic{color:var(--run)}
+nav .badge{position:absolute;top:4px;left:calc(50% + 6px);background:var(--wait);color:#1e2023;font:700 10px var(--mono);border-radius:8px;padding:0 5px;min-width:16px}
+/* building blocks */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.row{display:flex;gap:10px;align-items:center}
+.meta{color:var(--dim);font-size:13px} .mono{font-family:var(--mono)}
+.big{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:58px;border:1.5px dashed var(--line);border-radius:16px;background:var(--card);font-size:17px;font-weight:600;color:var(--ink)}
+.big:active{background:var(--surface)}
+.btn{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 16px;font-weight:600}
+.btn.pri{background:var(--run);border-color:var(--run);color:#13210f} .btn.bad{color:var(--err)} .btn.sm{min-height:36px;padding:0 12px;font-size:14px}
+.btn:active{opacity:.8}
+.seg{display:flex;background:var(--surface);border-radius:10px;padding:3px;gap:3px;margin:10px 0}
+.seg button{flex:1;border:none;background:none;border-radius:8px;padding:8px 0;font-size:14px;color:var(--dim)} .seg button.on{background:var(--bg);color:var(--ink)}
+textarea,input[type=text]{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none;font-size:16px}
+textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:var(--dim)}
+.tr{display:flex;gap:12px;align-items:flex-start}
+.tr .ar{font:600 18px var(--mono);width:20px;text-align:center;color:var(--dim);padding-top:1px} .tr .ar.in{color:var(--run)}
+.tr .t{font-weight:600;word-break:break-word} .tr .b{color:var(--dim);font-size:14px;white-space:pre-wrap;word-break:break-word;margin-top:2px}
+.bar{height:4px;background:var(--line);border-radius:2px;margin-top:8px;overflow:hidden} .bar i{display:block;height:100%;width:0;background:var(--run);transition:width .2s}
+.list .it{display:flex;gap:12px;padding:12px 2px;border-bottom:1px solid #2f3236;align-items:flex-start}
+.list .it:last-child{border-bottom:none}
+.chev{margin-left:auto;color:var(--faint);font-size:18px}
+.pill{font:600 10px var(--mono);letter-spacing:.1em;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--dim)}
+.pill.decision{color:var(--done)} .pill.rule{color:var(--wait)} .pill.fact{color:var(--run)} .pill.out{color:var(--err)}
+.empty{color:var(--faint);text-align:center;padding:26px 10px;font-size:15px}
+.back{background:none;border:none;color:var(--done);font-size:16px;padding:6px 0;margin-bottom:6px}
+.chk{width:24px;height:24px;border-radius:7px;border:1.5px solid var(--dim);flex:none;display:flex;align-items:center;justify-content:center;font-size:15px}
+.chk.on{background:var(--run);border-color:var(--run);color:#13210f}
+.msg .h{font:12px var(--mono);color:var(--faint)} .msg .h b{color:var(--dim);font-weight:500} .msg.me .h b{color:var(--claude)} .msg .b{white-space:pre-wrap;word-break:break-word}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(var(--bot) + 76px);background:#121315;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;display:none;z-index:9}
+.gate{padding:30px 6px;text-align:center} .gate p{color:var(--dim)}
+.warn{border-color:#e3b34166;color:var(--wait);font-size:13.5px}
+</style>
+</head>
+<body>
+<header><div class="logo">TRMNL<i>_</i></div><div class="st" id="hst"></div></header>
+<main id="main">
+  <section class="page" id="pg-gate"><div class="gate">
+    <h2 style="text-align:center">NOT PAIRED</h2>
+    <p>Open TRMNL on your computer → ⚙ Settings → <b>pair a phone</b>, and scan the code with this phone's camera.</p>
+    <p class="meta">The link it gives you sets this app up; nothing to type.</p></div></section>
+
+  <section class="page" id="pg-drop">
+    <div class="seg" id="tosel"></div>
+    <button class="big" id="pick">＋ Send photos, videos or files</button>
+    <input type="file" id="picker" multiple hidden>
+    <div class="card warn" id="awake" style="display:none;margin-top:10px">Big upload going. Keep the screen on until it says <b>sent</b>: iPhone stops uploads when you switch apps.</div>
+    <div style="margin-top:10px" class="row"><textarea id="txt" placeholder="Text or a link to send…" rows="2" style="min-height:52px"></textarea></div>
+    <div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn sm" id="paste">paste</button><button class="btn sm pri" id="sendtxt">send</button></div>
+    <div id="ups"></div>
+    <h2>INBOX · SENT TO THIS PHONE</h2><div id="inbox"></div>
+    <h2>SENT FROM THIS PHONE</h2><div id="outbox"></div>
+  </section>
+
+  <section class="page" id="pg-proj"><div id="projv"></div></section>
+  <section class="page" id="pg-sot"><div id="sotv"></div></section>
+  <section class="page" id="pg-msg"><div id="msgv"></div>
+    <div class="card" style="position:sticky;bottom:0"><div class="seg" id="mto"></div><textarea id="mbody" placeholder="Message the machines' Claude sessions…" rows="2"></textarea>
+    <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn sm pri" id="msend">send</button></div></div></section>
+  <section class="page" id="pg-stat"><div id="statv"></div></section>
+</main>
+<nav id="nav">
+  <button data-p="drop" class="on"><span class="ic">⇅</span>Drop<span class="badge" id="bdrop" hidden></span></button>
+  <button data-p="proj"><span class="ic">▦</span>Projects</button>
+  <button data-p="sot"><span class="ic">✓</span>SoT<span class="badge" id="bsot" hidden></span></button>
+  <button data-p="msg"><span class="ic">✉</span>Messages</button>
+  <button data-p="stat"><span class="ic">◉</span>Status</button>
+</nav>
+<div id="toast"></div>
+
+<script>
+// TRMNL phone app: the phone side of TRMNL (successor to PRAX Drop).
+// It talks to TRMNL only through the trmnl-phone gateway with this phone's pairing key (from the install link).
+// iOS gives an installed web app its own storage, separate from Safari, so the key rides the URL (?k=…) and the
+// home-screen app opens that exact URL. It's also kept in localStorage.
+const V = '0.7.0';
+const FN = 'https://ayedhlaggnkvjyqnyzps.supabase.co/functions/v1/trmnl-phone';
+const PUB = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';   // public by design: storage needs it beside the signed URL
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ago = (ts) => { const s = Math.round((Date.now() - new Date(ts)) / 1000); return s < 60 ? 'now' : s < 3600 ? Math.round(s/60) + 'm' : s < 86400 ? Math.round(s/3600) + 'h' : Math.round(s/86400) + 'd'; };
+const size = (b) => b == null ? '' : b < 1024 ? b + ' B' : b < 2**20 ? Math.round(b/1024) + ' KB' : (b/2**20).toFixed(1) + ' MB';
+const store = { get(k){ try { return localStorage.getItem('trmnl.' + k); } catch { return null; } }, set(k, v){ try { localStorage.setItem('trmnl.' + k, v); } catch {} } };
+const qk = new URLSearchParams(location.search).get('k');
+if (qk) store.set('key', qk);
+const KEY = qk || store.get('key');
+let S = null, page = store.get('page') || 'drop', to = store.get('to') || 'laptop', mto = 'all', projNav = [], seenIn = new Set(JSON.parse(store.get('seen') || '[]'));
+
+function toast(t){ const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => el.style.display = 'none', 3200); }
+async function call(op, body = {}){
+  const r = await fetch(FN, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: KEY, op, ua: navigator.userAgent.match(/iPhone|iPad|Android/)?.[0] || 'phone', v: V, ...body }) });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.status); return j;
+}
+function show(p){
+  page = p; store.set('page', p);
+  document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'pg-' + p));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+  $('#main').scrollTop = 0; render();
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.dataset.p));
+
+/* ---------- data ---------- */
+async function refresh(){
+  if (!KEY) return;
+  try { S = await call('state'); render(); }
+  catch (e) { if (/not paired/.test(e.message)) { S = null; $('#nav').style.display = 'none'; document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'pg-gate')); } else { toast('reconnecting…'); clearTimeout(refresh.r); refresh.r = setTimeout(refresh, 1500); } }   // a cold gateway can miss the first call
+}
+const machines = () => (S?.devices || []).filter(d => d.kind !== 'phone');
+const inbox = () => (S?.transfers || []).filter(t => t.from_device !== S.me && (t.to_device === S.me || t.to_device === 'all'));
+const outbox = () => (S?.transfers || []).filter(t => t.from_device === S.me);
+function render(){
+  if (!S) return;
+  const on = machines().filter(d => d.online);
+  $('#hst').innerHTML = machines().map(d => `<span><span class="dot ${d.online ? 'on' : ''}"></span> ${esc(d.name)}</span>`).join('');
+  const unseen = inbox().filter(t => !seenIn.has(t.id)).length, drafts = (S.sot || []).filter(s => s.status === 'draft').length;
+  $('#bdrop').hidden = !unseen; $('#bdrop').textContent = unseen; $('#bsot').hidden = !drafts; $('#bsot').textContent = drafts;
+  ({ drop: renderDrop, proj: renderProj, sot: renderSot, msg: renderMsg, stat: renderStat })[page]?.();
+}
+
+/* ---------- DROP: both ways ---------- */
+function renderDrop(){
+  const targets = [...machines().map(d => d.name), 'all'];
+  if (!targets.includes(to)) to = targets[0] || 'laptop';
+  $('#tosel').innerHTML = targets.map(t => `<button data-t="${esc(t)}" class="${t===to?'on':''}">→ ${esc(t)}</button>`).join('');
+  $('#tosel').querySelectorAll('button').forEach(b => b.onclick = () => { to = b.dataset.t; store.set('to', to); renderDrop(); });
+  const tr = (t, incoming) => `<div class="card tr" ${incoming ? `data-in="${t.id}"` : ''}><div class="ar ${incoming ? 'in' : ''}">${incoming ? '↓' : '↑'}</div><div style="flex:1;min-width:0">
+      <div class="t">${esc(t.title)}</div>${t.kind !== 'file' && t.body && t.body !== t.title ? `<div class="b">${esc(t.body)}</div>` : ''}
+      <div class="meta mono" style="font-size:12px;margin-top:3px">${incoming ? 'from ' + esc(t.from_device) : 'to ' + esc(t.to_device)} · ${ago(t.created_at)}${t.file_size ? ' · ' + size(t.file_size) : ''}${!incoming ? ' · ' + (t.status === 'uploading' ? 'uploading' : t.received_by.some(r => r !== S.me) ? 'received ✓' : 'waiting') : ''}</div></div>
+      ${incoming ? `<button class="btn sm" data-get="${t.id}">${t.kind === 'file' ? 'save' : t.kind === 'link' ? 'open' : 'copy'}</button>` : ''}</div>`;
+  $('#inbox').innerHTML = inbox().map(t => tr(t, true)).join('') || '<div class="empty">Nothing yet. Drop files on the PHONE card in TRMNL to send them here.</div>';
+  $('#outbox').innerHTML = outbox().slice(0, 30).map(t => tr(t, false)).join('') || '<div class="empty">Things you send land in TRMNL/Drop on the computer.</div>';
+  $('#inbox').querySelectorAll('[data-get]').forEach(b => b.onclick = () => getIn(inbox().find(t => t.id === b.dataset.get), b));
+  inbox().forEach(t => seenIn.add(t.id)); store.set('seen', JSON.stringify([...seenIn].slice(-500)));
+  $('#bdrop').hidden = true;
+}
+async function getIn(t, btn){
+  if (!t) return;
+  if (t.kind === 'link') { call('received', { id: t.id }); return void (location.href = t.body); }
+  if (t.kind === 'text') { try { await navigator.clipboard.writeText(t.body || ''); toast('copied'); } catch { toast('could not copy'); } call('received', { id: t.id }); return; }
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    const d = await call('download', { id: t.id }), blobs = [];
+    for (let i = 0; i < d.urls.length; i++) { btn.textContent = d.urls.length > 1 ? `${i + 1}/${d.urls.length}` : '…'; blobs.push(await (await fetch(d.urls[i])).blob()); }
+    const file = new File(blobs, d.name, { type: d.mime || blobs[0]?.type || 'application/octet-stream' });
+    // the share sheet is how a web app saves to Photos / Files on iPhone
+    if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); } catch {} }
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = d.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); }
+    btn.textContent = 'save';
+  } catch (e) { toast(e.message); btn.textContent = 'retry'; }
+  btn.disabled = false;
+}
+$('#pick').onclick = () => $('#picker').click();
+$('#picker').onchange = async (e) => { const fs = [...e.target.files]; e.target.value = ''; for (const f of fs) await upload(f); };
+function upItem(f){ const el = document.createElement('div'); el.className = 'card'; el.innerHTML = `<div class="t" style="font-weight:600;word-break:break-all">${esc(f.name)}</div><div class="meta" data-s>starting…</div><div class="bar"><i></i></div>`; $('#ups').prepend(el); return el; }
+async function upload(f){
+  const el = upItem(f), st = el.querySelector('[data-s]'), bar = el.querySelector('i');
+  if (f.size > 40 * 2**20) $('#awake').style.display = 'block';
+  try {
+    const u = await call('upload_start', { name: f.name, size: f.size, mime: f.type, to });
+    let sent = 0;
+    for (let k = 0; k < u.urls.length; k++) {
+      const piece = f.slice(k * u.part, (k + 1) * u.part);
+      st.textContent = u.urls.length > 1 ? `sending piece ${k + 1} of ${u.urls.length}…` : 'sending…';
+      await new Promise((res, rej) => {
+        const x = new XMLHttpRequest(); x.open('PUT', u.urls[k]);
+        x.setRequestHeader('content-type', u.urls.length > 1 ? 'application/octet-stream' : (f.type || 'application/octet-stream')); x.setRequestHeader('apikey', PUB); x.setRequestHeader('x-upsert', 'true');
+        x.upload.onprogress = (p) => { bar.style.width = Math.round(100 * (sent + p.loaded) / f.size) + '%'; };
+        x.onload = () => x.status < 300 ? res() : rej(new Error(`upload refused (${x.status}): ${x.responseText.slice(0, 120)}`));
+        x.onerror = () => rej(new Error('network dropped: keep the screen on and try again'));
+        x.send(piece);
+      });
+      sent += piece.size;
+    }
+    await call('upload_done', { id: u.id });
+    bar.style.width = '100%'; st.textContent = `sent to ${to} ✓ · lands in TRMNL/Drop`; st.style.color = 'var(--run)';
+    refresh();
+  } catch (e) { st.textContent = e.message; st.style.color = 'var(--err)'; }
+  if (![...document.querySelectorAll('#ups [data-s]')].some(s => /sending/.test(s.textContent))) $('#awake').style.display = 'none';
+}
+$('#sendtxt').onclick = async () => { const v = $('#txt').value.trim(); if (!v) return; try { await call('send_text', { text: v, to }); $('#txt').value = ''; toast(`sent to ${to}`); refresh(); } catch (e) { toast(e.message); } };
+$('#paste').onclick = async () => { try { $('#txt').value = await navigator.clipboard.readText(); } catch { toast('allow paste, or long-press the box'); } };
+
+/* ---------- PROJECTS: browse project → system → its board; add notes/tasks ---------- */
+function renderProj(){
+  const v = $('#projv'), P = S.projects || [], top = projNav[projNav.length - 1];
+  const items = (pid) => (S.items || []).filter(i => i.project_id === pid);
+  if (!top) {
+    const ps = P.filter(p => p.kind === 'project');
+    v.innerHTML = `<h2>PROJECTS</h2><div class="card list">${ps.map(p => `<div class="it" data-go="${p.id}"><span class="dot" style="background:${esc(p.color)};border-radius:3px;margin-top:7px"></span><div><div style="font-weight:600">${esc(p.name)}</div><div class="meta">${esc(p.about || '')} · ${P.filter(s => s.parent_id === p.id).length} systems</div></div><span class="chev">›</span></div>`).join('') || '<div class="empty">no projects</div>'}</div>`;
+  } else {
+    const p = P.find(x => x.id === top);
+    if (p?.kind === 'project') {
+      const sys = P.filter(s => s.parent_id === p.id);
+      v.innerHTML = `<button class="back" data-back>‹ Projects</button><h2>${esc(p.name.toUpperCase())} · SYSTEMS</h2><div class="card list">${sys.map(s => { const a = (S.agents || []).filter(x => x.project_id === s.id); return `<div class="it" data-go="${s.id}"><span class="dot" style="background:${esc(s.color)};border-radius:3px;margin-top:7px"></span><div><div style="font-weight:600">${esc(s.name)}</div><div class="meta">${items(s.id).length} items · ${a.length} agents${s.about ? ' · ' + esc(s.about) : ''}</div></div><span class="chev">›</span></div>`; }).join('') || '<div class="empty">no systems yet</div>'}</div>`;
+    } else if (p) {
+      const its = items(p.id), ags = (S.agents || []).filter(x => x.project_id === p.id);
+      v.innerHTML = `<button class="back" data-back>‹ ${esc(P.find(x => x.id === p.parent_id)?.name || 'Back')}</button><h2>${esc(p.name.toUpperCase())}</h2>
+        <div class="card"><div class="seg" id="ak"><button data-k="note" class="on">note</button><button data-k="task">task</button><button data-k="link">link</button></div><textarea id="at" rows="2" placeholder="add to ${esc(p.name)}…"></textarea><div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn sm pri" id="aadd">add</button></div></div>
+        ${ags.length ? `<h2>AGENTS</h2><div class="card list">${ags.map(a => `<div class="it"><div><div style="font-weight:600">${esc(a.name)} <span class="pill">${a.runtime === 'local' ? 'LOCAL' : 'CLAUDE'}</span></div><div class="meta">${esc(a.model)} on ${esc(a.device)} · ${esc(a.role || '')}</div></div></div>`).join('')}</div>` : ''}
+        <h2>BOARD</h2><div class="card list">${its.map(i => `<div class="it">${i.kind === 'task' ? `<span class="chk ${i.done ? 'on' : ''}" data-done="${i.id}">${i.done ? '✓' : ''}</span>` : `<span class="mono meta" style="width:24px;text-align:center">${i.agent_id ? '◆' : { note: '¶', link: '↗', file: '▤' }[i.kind]}</span>`}<div style="min-width:0"><div style="${i.done ? 'text-decoration:line-through;color:var(--faint)' : ''};word-break:break-word">${esc(i.title)}</div><div class="meta" style="font-size:12px">${esc(i.device)} · ${ago(i.created_at)}</div></div></div>`).join('') || '<div class="empty">empty</div>'}</div>`;
+      let kind = 'note';
+      v.querySelectorAll('#ak button').forEach(b => b.onclick = () => { kind = b.dataset.k; v.querySelectorAll('#ak button').forEach(x => x.classList.toggle('on', x === b)); });
+      $('#aadd').onclick = async () => { const t = $('#at').value.trim(); if (!t) return; const link = kind === 'link'; try { await call('item_add', { project_id: p.id, kind, title: link ? t.replace(/^https?:\/\//, '').slice(0, 80) : t.slice(0, 120), body: link ? (/^https?:/.test(t) ? t : 'https://' + t) : t }); $('#at').value = ''; toast('added'); refresh(); } catch (e) { toast(e.message); } };
+      v.querySelectorAll('[data-done]').forEach(c => c.onclick = async () => { const i = its.find(x => x.id === c.dataset.done); await call('item_done', { id: i.id, done: !i.done }).catch(e => toast(e.message)); refresh(); });
+    }
+  }
+  v.querySelectorAll('[data-go]').forEach(r => r.onclick = () => { projNav.push(r.dataset.go); renderProj(); $('#main').scrollTop = 0; });
+  v.querySelector('[data-back]')?.addEventListener('click', () => { projNav.pop(); renderProj(); });
+}
+
+/* ---------- SoT: confirm or reject from the phone ---------- */
+function renderSot(){
+  const rows = S.sot || [], drafts = rows.filter(r => r.status === 'draft'), conf = rows.filter(r => r.status === 'confirmed');
+  const card = (r, act) => `<div class="card"><div class="row" style="align-items:baseline"><span class="pill ${r.kind}">${r.kind.toUpperCase()}</span><span class="meta" style="font-size:12px;margin-left:auto">${esc(r.proposed_by)} · ${ago(r.created_at)}</span></div>
+    <div style="font-weight:600;margin-top:6px;word-break:break-word">${esc(r.title)}</div>${r.body ? `<div class="meta" style="white-space:pre-wrap;margin-top:4px">${esc(r.body)}</div>` : ''}${r.source ? `<div class="meta" style="font-size:12px;margin-top:4px">source: ${esc(r.source)}</div>` : ''}
+    ${act ? `<div class="row" style="margin-top:10px"><button class="btn pri" style="flex:1" data-ok="${r.id}">Confirm</button><button class="btn bad" data-no="${r.id}">Reject</button></div>` : ''}</div>`;
+  $('#sotv').innerHTML = `<h2>WAITING FOR YOU · ${drafts.length}</h2>${drafts.map(r => card(r, true)).join('') || '<div class="empty">Nothing waiting. Claude sessions propose; only you confirm.</div>'}
+    <h2>CONFIRMED · ${conf.length}</h2>${conf.slice(0, 40).map(r => card(r, false)).join('')}`;
+  const decide = async (id, status) => { try { await call('sot_decide', { id, status }); toast(status === 'confirmed' ? 'confirmed: every TRMNL session knows it now' : 'rejected'); refresh(); } catch (e) { toast(e.message); } };
+  $('#sotv').querySelectorAll('[data-ok]').forEach(b => b.onclick = () => decide(b.dataset.ok, 'confirmed'));
+  $('#sotv').querySelectorAll('[data-no]').forEach(b => b.onclick = () => decide(b.dataset.no, 'rejected'));
+}
+
+/* ---------- MESSAGES: talk to the machines' Claude sessions ---------- */
+function renderMsg(){
+  const targets = ['all', ...machines().map(d => d.name)];
+  $('#mto').innerHTML = targets.map(t => `<button data-t="${esc(t)}" class="${t===mto?'on':''}">${esc(t)}</button>`).join('');
+  $('#mto').querySelectorAll('button').forEach(b => b.onclick = () => { mto = b.dataset.t; renderMsg(); });
+  if (document.activeElement === $('#mbody')) return;
+  $('#msgv').innerHTML = (S.messages || []).slice().reverse().map(m => `<div class="card msg ${m.author === 'jackson' ? 'me' : ''}"><div class="h"><b>${esc(m.from_device)}/${esc(m.author)}</b> → ${esc(m.to_device)} · ${ago(m.created_at)}</div><div class="b">${esc(m.body)}</div></div>`).join('') || '<div class="empty">no messages yet</div>';
+}
+$('#msend').onclick = async () => { const v = $('#mbody').value.trim(); if (!v) return; try { await call('message', { to: mto, body: v }); $('#mbody').value = ''; toast('sent'); refresh(); } catch (e) { toast(e.message); } };
+
+/* ---------- STATUS ---------- */
+function renderStat(){
+  $('#statv').innerHTML = `<h2>MACHINES</h2>${(S.devices || []).map(d => `<div class="card row"><span class="dot ${d.online ? 'on' : ''}"></span><div><div style="font-weight:600">${esc(d.name)}${d.name === S.me ? ' (this phone)' : ''}</div><div class="meta mono" style="font-size:12px">${d.kind === 'phone' ? 'TRMNL app v' + esc(d.version || '?') : 'TRMNL v' + esc(d.version || '?')} · seen ${ago(d.last_seen)}</div></div></div>`).join('')}
+    <h2>ACTIVITY</h2><div class="card list">${(S.events || []).slice(0, 40).map(e => `<div class="it"><span class="mono meta" style="width:30px;font-size:12px">${ago(e.created_at)}</span><div style="min-width:0"><div class="meta mono" style="font-size:11px">${esc(e.device)}</div><div style="font-size:14px;word-break:break-word">${esc(e.summary)}</div></div></div>`).join('')}</div>
+    <p class="meta mono" style="text-align:center;font-size:11px">TRMNL app v${V} · paired as ${esc(S.me)}</p>`;
+}
+
+/* ---------- start ---------- */
+if (!KEY) { $('#nav').style.display = 'none'; document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'pg-gate')); }
+else { show(page); call('hello').catch(() => {}); refresh(); setInterval(() => { if (!document.hidden) refresh(); }, 8000); document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); }); }
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>
