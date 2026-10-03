@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TRMNL</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-180.png">
@@ -85,6 +85,7 @@ textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:va
     <div style="margin-top:10px" class="row"><textarea id="txt" placeholder="Text or a link to send…" rows="2" style="min-height:52px"></textarea></div>
     <div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn sm" id="paste">paste</button><button class="btn sm pri" id="sendtxt">send</button></div>
     <div id="ups"></div>
+    <div id="unsurew"></div>
     <h2>INBOX · SENT TO THIS PHONE</h2><div id="inbox"></div>
     <h2>SENT FROM THIS PHONE</h2><div id="outbox"></div>
   </section>
@@ -110,7 +111,7 @@ textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:va
 // It talks to TRMNL only through the trmnl-phone gateway with this phone's pairing key (from the install link).
 // iOS gives an installed web app its own storage, separate from Safari, so the key rides the URL (?k=…) and the
 // home-screen app opens that exact URL. It's also kept in localStorage.
-const V = '0.7.1';
+const V = '0.7.2';
 const FN = 'https://ayedhlaggnkvjyqnyzps.supabase.co/functions/v1/trmnl-phone';
 const PUB = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';   // public by design: storage needs it beside the signed URL
 const $ = (s) => document.querySelector(s);
@@ -145,11 +146,15 @@ async function refresh(){
 const machines = () => (S?.devices || []).filter(d => d.kind !== 'phone');
 const inbox = () => (S?.transfers || []).filter(t => t.from_device !== S.me && (t.to_device === S.me || t.to_device === 'all'));
 const outbox = () => (S?.transfers || []).filter(t => t.from_device === S.me);
+const unsure = () => outbox().filter(t => t.route_status === 'unsure');
+// every project › system, for filing (the label is what Jackson picks from)
+const systems = () => { const P = S?.projects || []; return P.filter(p => p.kind === 'system').map(p => ({ id: p.id, label: `${P.find(x => x.id === p.parent_id)?.name || '?'} › ${p.name}` })).sort((a, b) => a.label.localeCompare(b.label)); };
+const sysName = (id) => systems().find(x => x.id === id)?.label || 'a system';
 function render(){
   if (!S) return;
   const on = machines().filter(d => d.online);
   $('#hst').innerHTML = machines().map(d => `<span><span class="dot ${d.online ? 'on' : ''}"></span> ${esc(d.name)}</span>`).join('');
-  const unseen = inbox().filter(t => !seenIn.has(t.id)).length, drafts = (S.sot || []).filter(s => s.status === 'draft').length;
+  const unseen = inbox().filter(t => !seenIn.has(t.id)).length + unsure().length, drafts = (S.sot || []).filter(s => s.status === 'draft').length;
   $('#bdrop').hidden = !unseen; $('#bdrop').textContent = unseen; $('#bsot').hidden = !drafts; $('#bsot').textContent = drafts;
   ({ drop: renderDrop, proj: renderProj, sot: renderSot, msg: renderMsg, stat: renderStat })[page]?.();
 }
@@ -162,13 +167,40 @@ function renderDrop(){
   $('#tosel').querySelectorAll('button').forEach(b => b.onclick = () => { to = b.dataset.t; store.set('to', to); renderDrop(); });
   const tr = (t, incoming) => `<div class="card tr" ${incoming ? `data-in="${t.id}"` : ''}><div class="ar ${incoming ? 'in' : ''}">${incoming ? '↓' : '↑'}</div><div style="flex:1;min-width:0">
       <div class="t">${esc(t.title)}</div>${t.kind !== 'file' && t.body && t.body !== t.title ? `<div class="b">${esc(t.body)}</div>` : ''}
-      <div class="meta mono" style="font-size:12px;margin-top:3px">${incoming ? 'from ' + esc(t.from_device) : 'to ' + esc(t.to_device)} · ${ago(t.created_at)}${t.file_size ? ' · ' + size(t.file_size) : ''}${!incoming ? ' · ' + (t.status === 'uploading' ? 'uploading' : t.received_by.some(r => r !== S.me) ? 'received ✓' : 'waiting') : ''}</div></div>
-      ${incoming ? `<button class="btn sm" data-get="${t.id}">${t.kind === 'file' ? 'save' : t.kind === 'link' ? 'open' : 'copy'}</button>` : ''}</div>`;
+      <div class="meta mono" style="font-size:12px;margin-top:3px">${incoming ? 'from ' + esc(t.from_device) : 'to ' + esc(t.to_device)} · ${ago(t.created_at)}${t.file_size ? ' · ' + size(t.file_size) : ''}${!incoming ? ' · ' + (t.status === 'uploading' ? 'uploading' : t.received_by.some(r => r !== S.me) ? 'received ✓' : 'waiting') : ''}</div>${!incoming ? routeLine(t) : ''}</div>
+      ${!incoming && t.route_status === 'routed' ? `<button class="btn sm" data-move="${t.id}">move</button>` : ''}${incoming ? `<button class="btn sm" data-get="${t.id}">${t.kind === 'file' ? 'save' : t.kind === 'link' ? 'open' : 'copy'}</button>` : ''}</div>`;
   $('#inbox').innerHTML = inbox().map(t => tr(t, true)).join('') || '<div class="empty">Nothing yet. Drop files on the PHONE card in TRMNL to send them here.</div>';
-  $('#outbox').innerHTML = outbox().slice(0, 30).map(t => tr(t, false)).join('') || '<div class="empty">Things you send land in TRMNL/Drop on the computer.</div>';
+  if (!$('#outbox').querySelector('.filer')?.contains(document.activeElement)) $('#outbox').innerHTML = outbox().slice(0, 30).map(t => tr(t, false)).join('') || '<div class="empty">Things you send land in TRMNL/Drop on the computer.</div>';
+  renderUnsure();
+  $('#outbox').querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const t = outbox().find(x => x.id === b.dataset.move); const c = b.closest('.card'); if (t && !c.nextElementSibling?.classList.contains('filer')) c.insertAdjacentHTML('afterend', filer(t, true)), wireFiler(c.nextElementSibling); });
   $('#inbox').querySelectorAll('[data-get]').forEach(b => b.onclick = () => getIn(inbox().find(t => t.id === b.dataset.get), b));
   inbox().forEach(t => seenIn.add(t.id)); store.set('seen', JSON.stringify([...seenIn].slice(-500)));
   $('#bdrop').hidden = true;
+}
+/* ---------- where phone items go: the Mac files them; what it can't place waits here for Jackson ---------- */
+function routeLine(t){
+  const r = t.route_status; if (!r) return '';
+  const txt = r === 'routed' ? `→ ${esc(sysName(t.route_project_id))}${t.route_by && t.route_by !== 'jackson' ? ` · ${esc(t.route_by)}` : ''}` : r === 'unsure' ? 'unsure: needs you (above)' : r === 'dismissed' ? 'not needed' : r === 'analyzing' ? 'being filed…' : 'waiting to be filed';
+  return `<div class="meta" style="font-size:12px;margin-top:2px;color:${r === 'routed' ? 'var(--run)' : r === 'unsure' ? 'var(--wait)' : 'var(--faint)'}">${txt}</div>`;
+}
+function filer(t, moving){
+  return `<div class="card filer" data-f="${t.id}" style="${moving ? '' : 'border-color:#e3b34166'}">
+    ${moving ? '' : `<div style="font-weight:600;word-break:break-word">${esc(t.title)}</div>${t.route_summary ? `<div class="meta" style="margin-top:2px">${esc(t.route_summary)}</div>` : ''}${t.route_reason ? `<div class="meta" style="font-size:12px;margin-top:2px">${esc(t.route_reason)}</div>` : ''}`}
+    <select data-sys style="width:100%;margin-top:8px;min-height:40px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:16px"><option value="">${moving ? 'move to…' : 'where does it go?'}</option>${systems().map(x => `<option value="${x.id}" ${x.id === t.route_project_id ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>
+    <input type="text" data-note placeholder="note (optional): what it's for" style="margin-top:8px">
+    <div class="row" style="justify-content:flex-end;margin-top:8px">${moving ? '' : '<button class="btn sm" data-dismiss>not needed</button>'}<button class="btn sm pri" data-file>${moving ? 'move it' : 'file it'}</button></div></div>`;
+}
+function wireFiler(el){
+  const id = el.dataset.f;
+  el.querySelector('[data-file]').onclick = async () => { const sys = el.querySelector('[data-sys]').value; if (!sys) return toast('pick where it goes'); try { await call('route', { id, action: 'file', project_id: sys, note: el.querySelector('[data-note]').value }); toast(`filed → ${sysName(sys)}`); refresh(); } catch (e) { toast(e.message); } };
+  el.querySelector('[data-dismiss]')?.addEventListener('click', async () => { try { await call('route', { id, action: 'dismiss', note: el.querySelector('[data-note]').value }); toast('ok, not needed'); refresh(); } catch (e) { toast(e.message); } });
+}
+function renderUnsure(){
+  const w = $('#unsurew'), u = unsure();
+  if (w.contains(document.activeElement) && w.dataset.n === String(u.length)) return;   // don't redraw under his thumbs
+  w.dataset.n = u.length;
+  w.innerHTML = u.length ? `<h2 style="color:var(--wait)">UNSURE · WHERE DOES IT GO?</h2>${u.map(t => filer(t, false)).join('')}` : '';
+  w.querySelectorAll('.filer').forEach(wireFiler);
 }
 async function getIn(t, btn){
   if (!t) return;
@@ -284,9 +316,23 @@ function screenInfo(){
   pr.style.cssText = 'position:fixed;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
   document.body.appendChild(pr); const c = getComputedStyle(pr), px = (k) => Math.round(parseFloat(c[k]) || 0);
   const safe = { top: px('paddingTop'), right: px('paddingRight'), bottom: px('paddingBottom'), left: px('paddingLeft') }; pr.remove();
+  const rc = (s) => { const r = $(s)?.getBoundingClientRect(); return r ? { y: Math.round(r.top), h: Math.round(r.height) } : null; };
+  const root = getComputedStyle(document.documentElement);
   return { w: innerWidth, h: innerHeight, sw: screen.width, sh: screen.height, dpr: devicePixelRatio, safe,
+    applied: { top: parseFloat(root.getPropertyValue('--top')) || 0, bottom: parseFloat(root.getPropertyValue('--bot')) || 0 }, header: rc('header'), nav: rc('nav'),
     standalone: matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, vv: visualViewport ? { w: Math.round(visualViewport.width), h: Math.round(visualViewport.height), scale: visualViewport.scale } : null };
 }
+// iOS sometimes reports every safe-area inset as 0 in the home-screen app (measured on Jackson's iPhone 10-02: 390×844,
+// page 797 tall = the screen minus the 47 px status bar, insets 0), and then the bottom tabs sit under the home indicator.
+// Measured fallback: a home-indicator iPhone (screen ≥ 812 tall) whose page reaches the bottom edge gets room for it,
+// and a page that starts under the status bar gets room for that.
+function fixInsets(){
+  if (sim || !(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true)) return;
+  const s = screenInfo().safe, homeBar = /iPhone/.test(navigator.userAgent) && screen.height >= 812;
+  if (homeBar && s.bottom === 0 && innerHeight >= screen.height - 50) document.documentElement.style.setProperty('--bot', '22px');
+  if (homeBar && s.top === 0 && innerHeight >= screen.height - 2) document.documentElement.style.setProperty('--top', '47px');
+}
+fixInsets();
 
 /* ---------- start ---------- */
 if (!KEY) { $('#nav').style.display = 'none'; document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'pg-gate')); }
