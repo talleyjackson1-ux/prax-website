@@ -85,6 +85,7 @@ textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:va
     <div style="margin-top:10px" class="row"><textarea id="txt" placeholder="Text or a link to send…" rows="2" style="min-height:52px"></textarea></div>
     <div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn sm" id="paste">paste</button><button class="btn sm pri" id="sendtxt">send</button></div>
     <div id="ups"></div>
+    <div id="apvw"></div>
     <div id="unsurew"></div>
     <h2>INBOX · SENT TO THIS PHONE</h2><div id="inbox"></div>
     <h2>SENT FROM THIS PHONE</h2><div id="outbox"></div>
@@ -111,7 +112,7 @@ textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:va
 // It talks to TRMNL only through the trmnl-phone gateway with this phone's pairing key (from the install link).
 // iOS gives an installed web app its own storage, separate from Safari, so the key rides the URL (?k=…) and the
 // home-screen app opens that exact URL. It's also kept in localStorage.
-const V = '0.7.2';
+const V = '0.7.3';
 const FN = 'https://ayedhlaggnkvjyqnyzps.supabase.co/functions/v1/trmnl-phone';
 const PUB = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';   // public by design: storage needs it beside the signed URL
 const $ = (s) => document.querySelector(s);
@@ -154,7 +155,7 @@ function render(){
   if (!S) return;
   const on = machines().filter(d => d.online);
   $('#hst').innerHTML = machines().map(d => `<span><span class="dot ${d.online ? 'on' : ''}"></span> ${esc(d.name)}</span>`).join('');
-  const unseen = inbox().filter(t => !seenIn.has(t.id)).length + unsure().length, drafts = (S.sot || []).filter(s => s.status === 'draft').length;
+  const unseen = inbox().filter(t => !seenIn.has(t.id)).length + unsure().length + (S.approvals || []).length, drafts = (S.sot || []).filter(s => s.status === 'draft').length;
   $('#bdrop').hidden = !unseen; $('#bdrop').textContent = unseen; $('#bsot').hidden = !drafts; $('#bsot').textContent = drafts;
   ({ drop: renderDrop, proj: renderProj, sot: renderSot, msg: renderMsg, stat: renderStat })[page]?.();
 }
@@ -171,7 +172,7 @@ function renderDrop(){
       ${!incoming && t.route_status === 'routed' ? `<button class="btn sm" data-move="${t.id}">move</button>` : ''}${incoming ? `<button class="btn sm" data-get="${t.id}">${t.kind === 'file' ? 'save' : t.kind === 'link' ? 'open' : 'copy'}</button>` : ''}</div>`;
   $('#inbox').innerHTML = inbox().map(t => tr(t, true)).join('') || '<div class="empty">Nothing yet. Drop files on the PHONE card in TRMNL to send them here.</div>';
   if (!$('#outbox').querySelector('.filer')?.contains(document.activeElement)) $('#outbox').innerHTML = outbox().slice(0, 30).map(t => tr(t, false)).join('') || '<div class="empty">Things you send land in TRMNL/Drop on the computer.</div>';
-  renderUnsure();
+  renderUnsure(); renderApprovals();
   $('#outbox').querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const t = outbox().find(x => x.id === b.dataset.move); const c = b.closest('.card'); if (t && !c.nextElementSibling?.classList.contains('filer')) c.insertAdjacentHTML('afterend', filer(t, true)), wireFiler(c.nextElementSibling); });
   $('#inbox').querySelectorAll('[data-get]').forEach(b => b.onclick = () => getIn(inbox().find(t => t.id === b.dataset.get), b));
   inbox().forEach(t => seenIn.add(t.id)); store.set('seen', JSON.stringify([...seenIn].slice(-500)));
@@ -194,6 +195,12 @@ function wireFiler(el){
   const id = el.dataset.f;
   el.querySelector('[data-file]').onclick = async () => { const sys = el.querySelector('[data-sys]').value; if (!sys) return toast('pick where it goes'); try { await call('route', { id, action: 'file', project_id: sys, note: el.querySelector('[data-note]').value }); toast(`filed → ${sysName(sys)}`); refresh(); } catch (e) { toast(e.message); } };
   el.querySelector('[data-dismiss]')?.addEventListener('click', async () => { try { await call('route', { id, action: 'dismiss', note: el.querySelector('[data-note]').value }); toast('ok, not needed'); refresh(); } catch (e) { toast(e.message); } });
+}
+// approvals waiting for Jackson (workflow steps, outward actions): decided here or in the TRMNL window
+function renderApprovals(){
+  const w = $('#apvw'), a = S.approvals || [];
+  w.innerHTML = a.length ? `<h2 style="color:var(--wait)">WAITING FOR YOU · ${a.length}</h2>` + a.map(x => `<div class="card" style="border-color:#e3b34166"><div style="font-weight:600;word-break:break-word">${esc(x.what)}</div>${x.detail ? `<div class="meta" style="white-space:pre-wrap;max-height:120px;overflow:auto;margin-top:4px">${esc(x.detail.slice(0, 1200))}</div>` : ''}<div class="meta" style="font-size:12px;margin-top:4px">${esc(x.device || '')} · ${ago(x.created_at)}</div><div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn sm" data-apv="${x.id}" data-s="rejected">no</button><button class="btn sm pri" data-apv="${x.id}" data-s="approved">approve</button></div></div>`).join('') : '';
+  w.querySelectorAll('[data-apv]').forEach(b => b.onclick = async () => { b.disabled = true; try { await call('approval', { id: b.dataset.apv, status: b.dataset.s }); S.approvals = (S.approvals || []).filter(x => x.id !== b.dataset.apv); renderApprovals(); toast(b.dataset.s === 'approved' ? 'approved: it continues' : 'ok, not doing it'); refresh(); } catch (e) { toast(e.message); b.disabled = false; } });
 }
 function renderUnsure(){
   const w = $('#unsurew'), u = unsure();
