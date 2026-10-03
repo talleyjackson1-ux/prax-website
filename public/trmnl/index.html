@@ -78,6 +78,7 @@ textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:va
     <p class="meta">The link it gives you sets this app up; nothing to type.</p></div></section>
 
   <section class="page" id="pg-drop">
+    <div id="stopw"></div>
     <div class="seg" id="tosel"></div>
     <button class="big" id="pick">＋ Send photos, videos or files</button>
     <input type="file" id="picker" multiple hidden>
@@ -112,7 +113,7 @@ textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:va
 // It talks to TRMNL only through the trmnl-phone gateway with this phone's pairing key (from the install link).
 // iOS gives an installed web app its own storage, separate from Safari, so the key rides the URL (?k=…) and the
 // home-screen app opens that exact URL. It's also kept in localStorage.
-const V = '0.7.3';
+const V = '0.7.4';
 const FN = 'https://ayedhlaggnkvjyqnyzps.supabase.co/functions/v1/trmnl-phone';
 const PUB = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';   // public by design: storage needs it beside the signed URL
 const $ = (s) => document.querySelector(s);
@@ -172,7 +173,7 @@ function renderDrop(){
       ${!incoming && t.route_status === 'routed' ? `<button class="btn sm" data-move="${t.id}">move</button>` : ''}${incoming ? `<button class="btn sm" data-get="${t.id}">${t.kind === 'file' ? 'save' : t.kind === 'link' ? 'open' : 'copy'}</button>` : ''}</div>`;
   $('#inbox').innerHTML = inbox().map(t => tr(t, true)).join('') || '<div class="empty">Nothing yet. Drop files on the PHONE card in TRMNL to send them here.</div>';
   if (!$('#outbox').querySelector('.filer')?.contains(document.activeElement)) $('#outbox').innerHTML = outbox().slice(0, 30).map(t => tr(t, false)).join('') || '<div class="empty">Things you send land in TRMNL/Drop on the computer.</div>';
-  renderUnsure(); renderApprovals();
+  renderUnsure(); renderApprovals(); renderStop();
   $('#outbox').querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const t = outbox().find(x => x.id === b.dataset.move); const c = b.closest('.card'); if (t && !c.nextElementSibling?.classList.contains('filer')) c.insertAdjacentHTML('afterend', filer(t, true)), wireFiler(c.nextElementSibling); });
   $('#inbox').querySelectorAll('[data-get]').forEach(b => b.onclick = () => getIn(inbox().find(t => t.id === b.dataset.get), b));
   inbox().forEach(t => seenIn.add(t.id)); store.set('seen', JSON.stringify([...seenIn].slice(-500)));
@@ -195,6 +196,15 @@ function wireFiler(el){
   const id = el.dataset.f;
   el.querySelector('[data-file]').onclick = async () => { const sys = el.querySelector('[data-sys]').value; if (!sys) return toast('pick where it goes'); try { await call('route', { id, action: 'file', project_id: sys, note: el.querySelector('[data-note]').value }); toast(`filed → ${sysName(sys)}`); refresh(); } catch (e) { toast(e.message); } };
   el.querySelector('[data-dismiss]')?.addEventListener('click', async () => { try { await call('route', { id, action: 'dismiss', note: el.querySelector('[data-note]').value }); toast('ok, not needed'); refresh(); } catch (e) { toast(e.message); } });
+}
+// STOP ALL (the trust ladder): one tap stops every automation on every machine; only Jackson resumes (window or here)
+function renderStop(){
+  const w = $('#stopw'), st = S.stop;
+  w.innerHTML = st ? `<div class="card" style="border-color:#ff7b72;background:#8e151933;margin-bottom:10px"><div style="font-weight:700;color:#ff7b72">STOPPED: nothing automatic runs</div><div class="meta" style="font-size:12px;margin-top:4px">by ${esc(st.by || '?')} · ${ago(st.at)}${st.reason ? ' · ' + esc(st.reason) : ''}</div><div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn sm" id="resumeall">resume</button></div></div>`
+    : `<div class="row" style="justify-content:flex-end;margin-bottom:8px"><button class="btn sm" id="stopall" style="background:#b62324;border-color:#ff7b72;color:#fff;min-height:34px">STOP ALL</button></div>`;
+  const tap = (b, label, go) => { if (b.dataset.sure) return go(); b.dataset.sure = 1; b.textContent = 'tap again to ' + label.toLowerCase(); setTimeout(() => { delete b.dataset.sure; b.textContent = label; }, 4000); };
+  $('#stopall')?.addEventListener('click', (e) => tap(e.target, 'STOP ALL', async () => { try { await call('stop', { on: true }); toast('stopped everything'); refresh(); } catch (er) { toast(er.message); } }));
+  $('#resumeall')?.addEventListener('click', (e) => tap(e.target, 'resume', async () => { try { await call('stop', { on: false }); toast('automations may start again'); refresh(); } catch (er) { toast(er.message); } }));
 }
 // approvals waiting for Jackson (workflow steps, outward actions): decided here or in the TRMNL window
 function renderApprovals(){
