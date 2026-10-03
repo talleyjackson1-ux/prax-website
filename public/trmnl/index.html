@@ -110,7 +110,7 @@ textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:va
 // It talks to TRMNL only through the trmnl-phone gateway with this phone's pairing key (from the install link).
 // iOS gives an installed web app its own storage, separate from Safari, so the key rides the URL (?k=…) and the
 // home-screen app opens that exact URL. It's also kept in localStorage.
-const V = '0.7.0';
+const V = '0.7.1';
 const FN = 'https://ayedhlaggnkvjyqnyzps.supabase.co/functions/v1/trmnl-phone';
 const PUB = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';   // public by design: storage needs it beside the signed URL
 const $ = (s) => document.querySelector(s);
@@ -275,9 +275,22 @@ function renderStat(){
     <p class="meta mono" style="text-align:center;font-size:11px">TRMNL app v${V} · paired as ${esc(S.me)}</p>`;
 }
 
+/* ---------- screen: what this phone really has, so TRMNL's PHONE frame matches it exactly ---------- */
+// The PHONE frame in TRMNL is an iframe, where env(safe-area-inset-*) is always 0: it passes the real insets as ?safe=top,bottom
+const sim = new URLSearchParams(location.search).get('safe');
+if (sim) { const [t, b] = sim.split(',').map(Number); document.documentElement.style.setProperty('--top', (t || 0) + 'px'); document.documentElement.style.setProperty('--bot', (b || 0) + 'px'); }
+function screenInfo(){
+  const pr = document.createElement('div');
+  pr.style.cssText = 'position:fixed;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  document.body.appendChild(pr); const c = getComputedStyle(pr), px = (k) => Math.round(parseFloat(c[k]) || 0);
+  const safe = { top: px('paddingTop'), right: px('paddingRight'), bottom: px('paddingBottom'), left: px('paddingLeft') }; pr.remove();
+  return { w: innerWidth, h: innerHeight, sw: screen.width, sh: screen.height, dpr: devicePixelRatio, safe,
+    standalone: matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, vv: visualViewport ? { w: Math.round(visualViewport.width), h: Math.round(visualViewport.height), scale: visualViewport.scale } : null };
+}
+
 /* ---------- start ---------- */
 if (!KEY) { $('#nav').style.display = 'none'; document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'pg-gate')); }
-else { show(page); call('hello').catch(() => {}); refresh(); setInterval(() => { if (!document.hidden) refresh(); }, 8000); document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); }); }
+else { show(page); call('hello', { screen: screenInfo() }).catch(() => {}); refresh(); setInterval(() => { if (!document.hidden) refresh(); }, 8000); document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); }); }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 </script>
 </body>
