@@ -113,7 +113,7 @@ textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:va
 // It talks to TRMNL only through the trmnl-phone gateway with this phone's pairing key (from the install link).
 // iOS gives an installed web app its own storage, separate from Safari, so the key rides the URL (?k=…) and the
 // home-screen app opens that exact URL. It's also kept in localStorage.
-const V = '0.7.4';
+const V = '0.8.0';
 const FN = 'https://ayedhlaggnkvjyqnyzps.supabase.co/functions/v1/trmnl-phone';
 const PUB = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';   // public by design: storage needs it beside the signed URL
 const $ = (s) => document.querySelector(s);
@@ -226,7 +226,7 @@ async function getIn(t, btn){
   btn.textContent = '…'; btn.disabled = true;
   try {
     const d = await call('download', { id: t.id }), blobs = [];
-    for (let i = 0; i < d.urls.length; i++) { btn.textContent = d.urls.length > 1 ? `${i + 1}/${d.urls.length}` : '…'; blobs.push(await (await fetch(d.urls[i])).blob()); }
+    for (let i = 0; i < d.urls.length; i++) { btn.textContent = d.urls.length > 1 ? `${i + 1}/${d.urls.length}` : '…'; const r = await fetch(d.urls[i]); if (!r.ok) throw new Error(r.status === 404 ? 'that file is gone (older than 7 days, or deleted)' : `download failed (${r.status})`); blobs.push(await r.blob()); }
     const file = new File(blobs, d.name, { type: d.mime || blobs[0]?.type || 'application/octet-stream' });
     // the share sheet is how a web app saves to Photos / Files on iPhone
     if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); } catch {} }
@@ -242,14 +242,24 @@ async function upload(f){
   const el = upItem(f), st = el.querySelector('[data-s]'), bar = el.querySelector('i');
   if (f.size > 40 * 2**20) $('#awake').style.display = 'block';
   try {
-    const u = await call('upload_start', { name: f.name, size: f.size, mime: f.type, to });
+    // R2 first (free egress; Jackson 10-08): a computer with R2 keys puts a one-time upload link in the row within a second
+    // or two, and the file goes straight to R2 in one piece. No such computer → Supabase Storage in ≤45 MB pieces.
+    let u = await call('upload_start', { name: f.name, size: f.size, mime: f.type, to, r2: true });
+    if (u.r2) {
+      st.textContent = 'asking a computer for an upload link…';
+      let s = null;
+      for (let i = 0; i < 16 && !s?.url; i++) { s = await call('upload_slot', { id: u.id }); if (!s.url) await new Promise(r => setTimeout(r, 750)); }
+      if (!s?.url) s = await call('upload_slot', { id: u.id, giveup: true });
+      u = s.url ? { id: u.id, urls: [s.url], type: s.type, r2: true } : { id: u.id, urls: s.urls, part: s.part };
+    }
     let sent = 0;
     for (let k = 0; k < u.urls.length; k++) {
-      const piece = f.slice(k * u.part, (k + 1) * u.part);
+      const piece = u.r2 ? f : f.slice(k * u.part, (k + 1) * u.part);
       st.textContent = u.urls.length > 1 ? `sending piece ${k + 1} of ${u.urls.length}…` : 'sending…';
       await new Promise((res, rej) => {
         const x = new XMLHttpRequest(); x.open('PUT', u.urls[k]);
-        x.setRequestHeader('content-type', u.urls.length > 1 ? 'application/octet-stream' : (f.type || 'application/octet-stream')); x.setRequestHeader('apikey', PUB); x.setRequestHeader('x-upsert', 'true');
+        if (u.r2) x.setRequestHeader('content-type', u.type);   // exactly the type the link was signed for
+        else { x.setRequestHeader('content-type', u.urls.length > 1 ? 'application/octet-stream' : (f.type || 'application/octet-stream')); x.setRequestHeader('apikey', PUB); x.setRequestHeader('x-upsert', 'true'); }
         x.upload.onprogress = (p) => { bar.style.width = Math.round(100 * (sent + p.loaded) / f.size) + '%'; };
         x.onload = () => x.status < 300 ? res() : rej(new Error(`upload refused (${x.status}): ${x.responseText.slice(0, 120)}`));
         x.onerror = () => rej(new Error('network dropped: keep the screen on and try again'));
