@@ -113,7 +113,7 @@ textarea{min-height:76px;resize:none} textarea:focus,input:focus{border-color:va
 // It talks to TRMNL only through the trmnl-phone gateway with this phone's pairing key (from the install link).
 // iOS gives an installed web app its own storage, separate from Safari, so the key rides the URL (?k=…) and the
 // home-screen app opens that exact URL. It's also kept in localStorage.
-const V = '0.8.0';
+const V = '0.8.1';
 const FN = 'https://ayedhlaggnkvjyqnyzps.supabase.co/functions/v1/trmnl-phone';
 const PUB = 'sb_publishable_MzAFSfWm7MIrzhPUANbZgg_0ie64Utf';   // public by design: storage needs it beside the signed URL
 const $ = (s) => document.querySelector(s);
@@ -128,7 +128,8 @@ let S = null, page = store.get('page') || 'drop', to = store.get('to') || 'lapto
 
 function toast(t){ const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => el.style.display = 'none', 3200); }
 async function call(op, body = {}){
-  const r = await fetch(FN, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: KEY, op, ua: navigator.userAgent.match(/iPhone|iPad|Android/)?.[0] || 'phone', v: V, ...body }) });
+  if (op !== 'state' && op !== 'hello') busyAt = Date.now();   // the phone did something: watch closely for its result
+  const r = await fetch(FN, { signal: AbortSignal.timeout?.(20_000), method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: KEY, op, ua: navigator.userAgent.match(/iPhone|iPad|Android/)?.[0] || 'phone', v: V, ...body }) });
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.status); return j;
 }
 function show(p){
@@ -140,10 +141,16 @@ function show(p){
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.dataset.p));
 
 /* ---------- data ---------- */
+// 10-09 (Jackson, Supabase log ingestion: every call is a log line): every 30 s while nothing happens; right after the phone
+// acts or a refresh shows something changed, every 8 s for 2 min; at once when the app comes back on screen
+const IDLE_MS = 30_000, BUSY_MS = 8_000, BUSY_FOR = 120_000;
+let busyAt = 0;
+function poll(){ clearTimeout(poll.t); poll.t = setTimeout(async () => { if (!document.hidden) await refresh(); poll(); }, Date.now() - busyAt < BUSY_FOR ? BUSY_MS : IDLE_MS); }
+// a change = anything the phone shows changed, but events (some machine logs one every few min) and device heartbeats never count
 async function refresh(){
   if (!KEY) return;
-  try { S = await call('state'); render(); }
-  catch (e) { if (/not paired/.test(e.message)) { S = null; $('#nav').style.display = 'none'; document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'pg-gate')); } else { toast('reconnecting…'); clearTimeout(refresh.r); refresh.r = setTimeout(refresh, 1500); } }   // a cold gateway can miss the first call
+  try { S = await call('state'); refresh.retried = false; const sig = JSON.stringify({ ...S, events: undefined, devices: (S.devices || []).map(d => d.name + (d.version || '')) }); if (sig !== refresh.sig) { if (refresh.sig) busyAt = Date.now(); refresh.sig = sig; } render(); }
+  catch (e) { if (/not paired/.test(e.message)) { S = null; $('#nav').style.display = 'none'; document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'pg-gate')); } else { toast('reconnecting…'); clearTimeout(refresh.r); if (!refresh.retried) { refresh.retried = true; refresh.r = setTimeout(refresh, 1500); } } }   // a cold gateway can miss the first call: one quick retry, then the poll's pace
 }
 const machines = () => (S?.devices || []).filter(d => d.kind !== 'phone');
 const inbox = () => (S?.transfers || []).filter(t => t.from_device !== S.me && (t.to_device === S.me || t.to_device === 'all'));
@@ -363,7 +370,7 @@ fixInsets();
 
 /* ---------- start ---------- */
 if (!KEY) { $('#nav').style.display = 'none'; document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'pg-gate')); }
-else { show(page); call('hello', { screen: screenInfo() }).catch(() => {}); refresh(); setInterval(() => { if (!document.hidden) refresh(); }, 8000); document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); }); }
+else { show(page); call('hello', { screen: screenInfo() }).catch(() => {}); refresh(); poll(); document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); poll(); } }); }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 </script>
 </body>
